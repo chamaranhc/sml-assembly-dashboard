@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SML Production Plan & Output Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PDF.js for Browser-Based PDF Report Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 bg-slate-50 antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand Logo & Title -->
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-center">
+                        <svg class="h-10 w-auto" viewBox="0 0 380 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Left Stylized Ribbon Symbol -->
+                            <g>
+                                <path d="M 65 12 L 20 28 C 12 31 10 38 18 40 L 75 52 C 85 54 88 64 78 70 L 25 88 C 15 91 5 84 12 76 L 32 55 L 55 58 Z" fill="#0022FF"/>
+                                <path d="M 12 76 L 58 60 C 66 57 68 50 60 48 L 10 36 C 0 34 -3 24 7 18 L 60 2 C 70 -1 80 6 73 14 L 52 35 L 30 32 Z" fill="#EE1111"/>
+                            </g>
+                            <!-- SML Main Text -->
+                            <text x="95" y="60" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="64" fill="#0022FF" letter-spacing="-2">SML</text>
+                            <!-- Subtext: SAMSON MANUFACTURERS (PVT) LTD. -->
+                            <text x="96" y="82" font-family="'Inter', sans-serif" font-weight="800" font-size="13.5" fill="#EE1111" letter-spacing="0.3">SAMSON MANUFACTURERS (PVT) LTD.</text>
+                        </svg>
+                    </div>
+                    <div class="hidden sm:block border-l border-slate-200 pl-4">
+                        <h1 class="text-base font-extrabold text-slate-900 tracking-tight leading-none">Production Plan & Output Dashboard</h1>
+                        <p class="text-xs text-slate-500 font-medium mt-1">IN (Collecting) &rarr; OUT (Assembly) &rarr; PR (FGW Handover)</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons & Real-Time Sync Indicator -->
+                <div class="flex items-center space-x-2">
+                    <div id="syncStatusBadge" onclick="openModal('syncSettingsModal')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition" title="Click to view real-time sync settings">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span id="syncStatusText">Local Network Sync Active</span>
+                    </div>
+
+                    <!-- PDF Report Auto-Import Button -->
+                    <button onclick="openModal('pdfUploadModal')" class="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Import Hourly System Scan PDF Report">
+                        <i class="fa-solid fa-file-pdf text-xs"></i>
+                        <span class="hidden md:inline">Import Hourly PDF Scan</span>
+                    </button>
+
+                    <button onclick="exportBackupJSON()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Export Full Database Backup (.json)">
+                        <i class="fa-solid fa-download text-xs"></i>
+                        <span class="hidden lg:inline">Backup</span>
+                    </button>
+                    <button onclick="triggerRestoreFileInput()" class="bg-violet-600 hover:bg-violet-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Restore Database from JSON Backup File">
+                        <i class="fa-solid fa-upload text-xs"></i>
+                        <span class="hidden lg:inline">Restore</span>
+                    </button>
+                    <button onclick="openModal('syncSettingsModal')" class="bg-slate-700 hover:bg-slate-800 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Configure Cloud / Server Real-Time Sync">
+                        <i class="fa-solid fa-cloud text-xs"></i>
+                        <span class="hidden lg:inline">Sync Settings</span>
+                    </button>
+                    <input type="file" id="backupFileInput" accept=".json" onchange="handleRestoreJSONFile(event)" class="hidden">
+
+                    <button onclick="openModal('collectingPointModal')" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                        <span class="hidden xl:inline">Collecting (IN)</span>
+                    </button>
+                    <button onclick="openModal('assemblyEndModal')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                        <span class="hidden xl:inline">Assembly (OUT)</span>
+                    </button>
+                    <button onclick="openModal('productionReceiptModal')" class="bg-purple-600 hover:bg-purple-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-invoice text-xs"></i>
+                        <span class="hidden xl:inline">Receipt (PR)</span>
+                    </button>
+                    <button onclick="openModal('addPlanModal')" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 hidden 2xl:flex">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>Add Plan</span>
+                    </button>
+                    <button onclick="openModal('resetPasswordModal')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Clear Daily Transactions">
+                        <i class="fa-solid fa-rotate text-xs"></i>
+                        <span class="hidden 2xl:inline">Reset Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs Bar -->
+        <div class="bg-slate-100/80 border-t border-slate-200/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex space-x-1 py-1.5 overflow-x-auto custom-scrollbar">
+                    <button id="tabBtn-overview" onclick="switchTab('overview')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-white text-blue-700 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Overview & Analytics</span>
+                    </button>
+                    <button id="tabBtn-wip" onclick="switchTab('wip')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 whitespace-nowrap relative">
+                        <i class="fa-solid fa-fire-flame-curved text-amber-500"></i>
+                        <span>Assembly WIP Tracker</span>
+                        <span id="activeWipCountBadge" class="bg-amber-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ml-1">0</span>
+                    </button>
+                    <button id="tabBtn-prTracker" onclick="switchTab('prTracker')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 whitespace-nowrap relative">
+                        <i class="fa-solid fa-file-invoice text-purple-600"></i>
+                        <span>PR / FGW Pending Tracker</span>
+                        <span id="activePrCountBadge" class="bg-purple-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ml-1">0</span>
+                    </button>
+                    <button id="tabBtn-plans" onclick="switchTab('plans')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Master Production Plans</span>
+                        <span id="planCountBadge" class="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                    <button id="tabBtn-logs" onclick="switchTab('logs')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Daily Output, Input & PR Logs</span>
+                    </button>
+                    <button id="tabBtn-deleted" onclick="switchTab('deleted')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-rose-700 whitespace-nowrap">
+                        <i class="fa-solid fa-trash-arrow-up text-rose-500"></i>
+                        <span>Deleted History</span>
+                        <span id="deletedLogsCountBadge" class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- TAB 1: OVERVIEW & ANALYTICS -->
+        <div id="tabView-overview" class="tab-view space-y-6">
+            
+            <!-- Filters Header & Search -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- Filter Type Pills -->
+                <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 md:pb-0">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-2">Category:</span>
+                    <button id="filter-type-ALL" onclick="setFilter('type', 'ALL')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition bg-slate-800 text-white shadow-2xs">All Items</button>
+                    <button id="filter-type-Box" onclick="setFilter('type', 'Box')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:bg-slate-100">Box Items</button>
+                    <button id="filter-type-Rubber" onclick="setFilter('type', 'Rubber')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:bg-slate-100">Rubber (GF)</button>
+                </div>
+
+                <!-- Month Filter & Search Bar -->
+                <div class="flex items-center space-x-3">
+                    <select id="monthFilterSelect" onchange="setFilter('month', this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">All Sale Months</option>
+                        <option value="OCT">OCT Month</option>
+                        <option value="NOV">NOV Month</option>
+                    </select>
+
+                    <div class="relative flex-1 sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search Plan No, Code..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <button onclick="exportSummaryCSV()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition" title="Export CSV Summary Report">
+                        <i class="fa-solid fa-file-csv text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top Metric Cards (6 KPIs) -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <!-- KPI 1: Total Plan Target -->
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Plan Target</span>
+                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-slate-900" id="kpi-target-qty">0</div>
+                    <div class="text-[10px] text-slate-500 font-medium truncate" id="kpi-target-plans-count">0 items</div>
+                </div>
+
+                <!-- KPI 2: Collecting Point Input (IN) -->
+                <div class="bg-white p-3.5 rounded-2xl border border-blue-100 shadow-xs space-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    <div class="flex items-center justify-between text-blue-600">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Collecting (IN)</span>
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-blue-900" id="kpi-input-qty">0</div>
+                    <div class="text-[10px] text-blue-600 font-semibold" id="kpi-input-pct">0% issued</div>
+                </div>
+
+                <!-- KPI 3: Assembly End Output (OUT) -->
+                <div class="bg-white p-3.5 rounded-2xl border border-emerald-100 shadow-xs space-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <div class="flex items-center justify-between text-emerald-600">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Assembly (OUT)</span>
+                        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-emerald-900" id="kpi-output-qty">0</div>
+                    <div class="text-[10px] text-emerald-600 font-semibold" id="kpi-output-pct">0% achieved</div>
+                </div>
+
+                <!-- KPI 4: Production Receipt (FGW PR) -->
+                <div class="bg-white p-3.5 rounded-2xl border border-purple-100 shadow-xs space-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
+                    <div class="flex items-center justify-between text-purple-600">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Receipt (FGW)</span>
+                        <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-purple-900" id="kpi-pr-qty">0</div>
+                    <div class="text-[10px] text-purple-600 font-semibold" id="kpi-pr-pct">0% handed over</div>
+                </div>
+
+                <!-- KPI 5: Line WIP & FGW Pending Balance -->
+                <div class="bg-white p-3.5 rounded-2xl border border-amber-100 shadow-xs space-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                    <div class="flex items-center justify-between text-amber-600">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Line WIP / Pending</span>
+                        <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-amber-900" id="kpi-wip-qty">0</div>
+                    <div class="text-[10px] text-amber-600 font-semibold" id="kpi-pending-fgw-text">0 FGW pending</div>
+                </div>
+
+                <!-- KPI 6: Defects & Yield -->
+                <div class="bg-white p-3.5 rounded-2xl border border-rose-100 shadow-xs space-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                    <div class="flex items-center justify-between text-rose-600">
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Defects / Rejects</span>
+                        <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-black text-rose-900" id="kpi-reject-qty">0</div>
+                    <div class="text-[10px] text-rose-600 font-semibold" id="kpi-yield-pct">100% Quality Yield</div>
+                </div>
+            </div>
+
+            <!-- Visual Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Line Chart: Input vs Output vs PR Trend -->
+                <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-sm">Daily Assembly & FGW Progress Trend</h3>
+                            <p class="text-xs text-slate-500">Collecting (IN) vs Assembly (OUT) vs Production Receipt (PR)</p>
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs font-bold">
+                            <span class="flex items-center gap-1 text-blue-600"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span> IN</span>
+                            <span class="flex items-center gap-1 text-emerald-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span> OUT</span>
+                            <span class="flex items-center gap-1 text-purple-600"><span class="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block"></span> PR (FGW)</span>
+                        </div>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="dailyTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Item Type Distribution -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm">Production Category Share</h3>
+                        <p class="text-xs text-slate-500">Box vs Rubber (GF) Finished Volume</p>
+                    </div>
+                    <div class="h-48 relative my-2">
+                        <canvas id="itemTypeChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-center pt-2 border-t border-slate-100">
+                        <div class="bg-blue-50/60 p-2 rounded-xl border border-blue-100">
+                            <span class="text-[10px] text-blue-600 font-bold uppercase block">Box Target</span>
+                            <strong id="boxTargetQtyText" class="text-sm font-black text-blue-900">0</strong>
+                        </div>
+                        <div class="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100">
+                            <span class="text-[10px] text-emerald-600 font-bold uppercase block">Rubber Target</span>
+                            <strong id="rubberTargetQtyText" class="text-sm font-black text-emerald-900">0</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Active Production Items -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm">Active Production Items Summary</h3>
+                        <p class="text-xs text-slate-500">High volume items in current assembly cycle</p>
+                    </div>
+                    <button onclick="switchTab('plans')" class="text-xs text-blue-600 hover:text-blue-700 font-bold">View All Master Plans &rarr;</button>
+                </div>
+                <div id="topPlansCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ASSEMBLY WIP TRACKER -->
+        <div id="tabView-wip" class="tab-view space-y-6 hidden">
+            <!-- Section 1: Today's Active Plans (Assembly IN) -->
+            <div class="bg-white p-5 rounded-2xl border border-blue-200 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
+                        <h3 class="font-black text-slate-900 text-base">Today Active Plans (Assembly IN)</h3>
+                        <span id="todayActiveBadge" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0 items</span>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        <span id="todayInPlansCount" class="font-bold text-slate-800">0 Plans</span> | <span id="todayInTotalQty" class="font-bold text-blue-700">0 items input today</span>
+                    </div>
+                </div>
+
+                <div id="todayInPlansGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Section 2: Previous Days Assembly IN but NOT OUT (Carryover WIP) -->
+            <div class="bg-amber-50/30 p-5 rounded-2xl border-2 border-amber-300 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <h3 class="font-black text-slate-900 text-base">Previous Days Assembly IN but NOT OUT (Carryover WIP)</h3>
+                        <span id="carryoverActiveBadge" class="bg-amber-100 text-amber-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-amber-300">0 items pending</span>
+                    </div>
+                    <div class="text-xs text-slate-600">
+                        <span id="carryoverPlansCount" class="font-bold text-slate-800">0 Plans</span> | <span id="carryoverTotalWip" class="font-bold text-amber-800">0 WIP items awaiting output</span>
+                    </div>
+                </div>
+
+                <div id="carryoverPlansGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards dynamically rendered -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2B: PR / FGW PENDING TRACKER -->
+        <div id="tabView-prTracker" class="tab-view space-y-6 hidden">
+            <!-- Section 1: Today's Assembly OUT Plans Awaiting PR -->
+            <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-purple-600 animate-pulse"></span>
+                        <h3 class="font-black text-slate-900 text-base">Today Assembly OUT Plans (Awaiting PR Handover)</h3>
+                        <span id="todayPrActiveBadge" class="bg-purple-100 text-purple-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0 items</span>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        <span id="todayPrPlansCount" class="font-bold text-slate-800">0 Plans</span> | <span id="todayPrTotalOut" class="font-bold text-emerald-700">0 items output today</span>
+                    </div>
+                </div>
+
+                <div id="todayPrPlansGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Section 2: Previous Days Assembly OUT Pending PR (Carryover Pending FGW) -->
+            <div class="bg-purple-50/30 p-5 rounded-2xl border-2 border-purple-300 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-violet-600"></span>
+                        <h3 class="font-black text-slate-900 text-base">Previous Days Assembly OUT Pending PR (Carryover FGW Balance)</h3>
+                        <span id="carryoverPrActiveBadge" class="bg-purple-100 text-purple-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-purple-300">0 items pending PR</span>
+                    </div>
+                    <div class="text-xs text-slate-600">
+                        <span id="carryoverPrPlansCount" class="font-bold text-slate-800">0 Plans</span> | <span id="carryoverPrTotalPending" class="font-bold text-purple-900">0 FGW items pending receipt</span>
+                    </div>
+                </div>
+
+                <div id="carryoverPrPlansGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards dynamically rendered -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: MASTER PRODUCTION PLANS -->
+        <div id="tabView-plans" class="tab-view space-y-4 hidden">
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div class="p-4 border-b border-slate-200/80 flex items-center justify-between">
+                    <h3 class="font-extrabold text-slate-900 text-sm">SML Master Production Target Plans</h3>
+                    <span class="text-xs text-slate-500">Size Assortment Range: Sizes 1 to 13</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-[11px] font-extrabold text-slate-500 uppercase border-b border-slate-200">
+                                <th class="py-3 px-3">Item Type</th>
+                                <th class="py-3 px-3">Plan Number</th>
+                                <th class="py-3 px-3">Item Code</th>
+                                <th class="py-3 px-3">Category</th>
+                                <th class="py-3 px-3">Sale Month</th>
+                                <th class="py-3 px-3 text-right">Target</th>
+                                <th class="py-3 px-3 text-right">IN</th>
+                                <th class="py-3 px-3 text-right">OUT</th>
+                                <th class="py-3 px-3 text-right">PR (FGW)</th>
+                                <th class="py-3 px-3 text-right">Line WIP</th>
+                                <th class="py-3 px-3">Status</th>
+                                <th class="py-3 px-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="plansTableBody" class="divide-y divide-slate-100">
+                            <!-- Rows populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: DAILY OUTPUT & INPUT & PR LOGS -->
+        <div id="tabView-logs" class="tab-view space-y-4 hidden">
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div class="p-4 border-b border-slate-200/80 flex items-center justify-between">
+                    <h3 class="font-extrabold text-slate-900 text-sm">Daily Collecting, Assembly & Production Receipt Log Entries</h3>
+                    <div class="flex items-center space-x-2">
+                        <select id="logTypeFilter" onchange="renderLogsTable()" class="bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold px-2.5 py-1 focus:outline-none">
+                            <option value="ALL">All Log Entries</option>
+                            <option value="IN">Collecting Point (IN)</option>
+                            <option value="OUT">Assembly End (OUT)</option>
+                            <option value="PR">Production Receipt (PR)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-[11px] font-extrabold text-slate-500 uppercase border-b border-slate-200">
+                                <th class="py-3 px-4">Date</th>
+                                <th class="py-3 px-4">Stage / Type</th>
+                                <th class="py-3 px-4">PR Doc No</th>
+                                <th class="py-3 px-4">Plan No</th>
+                                <th class="py-3 px-4">Item Code</th>
+                                <th class="py-3 px-4">Category</th>
+                                <th class="py-3 px-4 text-right">Qty</th>
+                                <th class="py-3 px-4 text-right">Rejects</th>
+                                <th class="py-3 px-4">Operator</th>
+                                <th class="py-3 px-4">Remarks</th>
+                                <th class="py-3 px-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody" class="divide-y divide-slate-100">
+                            <!-- Rows populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: DELETED HISTORY -->
+        <div id="tabView-deleted" class="tab-view space-y-4 hidden">
+            <div class="bg-white rounded-2xl border border-rose-200 shadow-xs overflow-hidden">
+                <div class="p-4 border-b border-rose-100 bg-rose-50/40 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-trash-arrow-up text-rose-600"></i>
+                        <h3 class="font-extrabold text-slate-900 text-sm">Deleted Transactions History Audit</h3>
+                    </div>
+                    <span id="deletedLogsSummaryBadge" class="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full">0 deleted items</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-[11px] font-extrabold text-slate-500 uppercase border-b border-slate-200">
+                                <th class="py-3 px-4">Deleted Time</th>
+                                <th class="py-3 px-4">Original Date</th>
+                                <th class="py-3 px-4">Stage / Type</th>
+                                <th class="py-3 px-4">PR Doc No</th>
+                                <th class="py-3 px-4">Plan No</th>
+                                <th class="py-3 px-4">Item Code</th>
+                                <th class="py-3 px-4 text-right">Qty</th>
+                                <th class="py-3 px-4">Operator</th>
+                                <th class="py-3 px-4">Remarks</th>
+                                <th class="py-3 px-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deletedLogsTableBody" class="divide-y divide-slate-100">
+                            <!-- Rows populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL 0: Hourly PDF Scan Auto-Import Modal -->
+    <div id="pdfUploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 border border-rose-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-rose-600">
+                    <i class="fa-solid fa-file-pdf text-xl"></i>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base">Import Hourly System Scan PDF Report</h3>
+                        <p class="text-xs text-slate-500">Upload system scans (e.g., <code class="bg-slate-100 text-rose-600 px-1 rounded">15.10.2026.pdf</code>) to automatically extract Assembly OUT quantities</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('pdfUploadModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Upload Dropzone & File Input -->
+            <div class="space-y-3">
+                <div id="pdfDropZone" onclick="document.getElementById('pdfFileInput').click()" class="border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/30 hover:bg-rose-50/60 rounded-2xl p-6 text-center cursor-pointer transition space-y-2">
+                    <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-800 block">Click to select or drag & drop PDF system scan report</span>
+                        <span class="text-[11px] text-slate-500">Supports PDF files or raw scanner report text</span>
+                    </div>
+                    <input type="file" id="pdfFileInput" accept=".pdf,.txt" onchange="handlePdfFileUpload(event)" class="hidden">
+                </div>
+
+                <!-- Text Fallback Area -->
+                <details class="text-xs text-slate-600">
+                    <summary class="font-bold text-rose-600 cursor-pointer hover:underline mb-2"><i class="fa-solid fa-code mr-1"></i>Or Paste System Report Text Directly</summary>
+                    <textarea id="pdfRawTextInput" rows="4" placeholder="Paste scanned text block here if file upload is unavailable..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+                    <button type="button" onclick="handleRawTextParse()" class="mt-2 bg-slate-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg hover:bg-slate-900 transition">Parse Text Report</button>
+                </details>
+            </div>
+
+            <!-- Live Extracted Data Preview Box -->
+            <div id="pdfParsePreviewContainer" class="hidden space-y-3 border-t border-slate-100 pt-4">
+                <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                    <div>
+                        <span class="font-bold text-slate-900">Extracted Header Meta:</span>
+                        <div class="text-slate-600 font-medium mt-0.5">
+                            Report Date: <strong id="pdfReportDate" class="text-rose-700">-</strong> | 
+                            Line: <strong id="pdfReportLine" class="text-blue-700">-</strong> | 
+                            Time: <strong id="pdfReportTime" class="text-purple-700">-</strong>
+                        </div>
+                    </div>
+                    <span id="pdfParsedRowsBadge" class="bg-rose-100 text-rose-800 font-extrabold px-2.5 py-1 rounded-full text-[11px]">0 plan rows found</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl max-h-60">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-[10px] font-extrabold text-slate-600 uppercase border-b border-slate-200">
+                                <th class="p-2">Item Code</th>
+                                <th class="p-2">Plan No</th>
+                                <th class="p-2 text-center">Sizes 1–13 Breakdown</th>
+                                <th class="p-2 text-right">Total OUT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdfParsedTableBody" class="divide-y divide-slate-100">
+                            <!-- Parsed preview rows rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <span class="text-[11px] text-slate-500 italic"><i class="fa-solid fa-circle-info mr-1"></i>Missing plan numbers will automatically be added to Master Plans.</span>
+                    <button type="button" onclick="confirmImportParsedPdfData()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Confirm & Import to Assembly OUT</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: Collecting Point (IN) Entry -->
+    <div id="collectingPointModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-slate-100 relative">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-blue-600">
+                    <i class="fa-solid fa-right-to-bracket text-lg"></i>
+                    <h3 class="font-extrabold text-slate-900 text-base">Collecting Point Entry (Item IN)</h3>
+                </div>
+                <button onclick="closeModal('collectingPointModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="collectingPointForm" onsubmit="handleCollectingPointSubmit(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Plan Number *</label>
+                        <select id="inPlanSelect" required onchange="updateInPlanPreview()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-extrabold text-slate-700">Entry Date</label>
+                            <button type="button" onclick="requestDateUnlock('inEntryDate')" id="inEntryDateUnlockBtn" class="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-lock text-[10px]" id="inEntryDateLockIcon"></i>
+                                <span id="inEntryDateLockText">Unlock Date</span>
+                            </button>
+                        </div>
+                        <input type="date" id="inEntryDate" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 cursor-not-allowed select-none transition">
+                    </div>
+                </div>
+
+                <!-- Preview Info Box -->
+                <div id="inPlanPreview" class="bg-blue-50/70 p-3 rounded-xl border border-blue-100 text-xs hidden space-y-1">
+                    <div class="flex justify-between font-bold text-blue-900">
+                        <span id="inPreviewItemCode">Code: -</span>
+                        <span id="inPreviewType" class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-[10px]">BOX</span>
+                    </div>
+                    <div class="flex justify-between text-blue-700">
+                        <span>Plan Target Qty: <strong id="inPreviewTarget">0</strong></span>
+                        <span>Current Total IN: <strong id="inPreviewCurrentInput">0</strong></span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-extrabold text-slate-700">Total Input Quantity (IN) *</label>
+                        <button type="button" onclick="distributeProportionally('in')" class="text-[11px] font-bold text-blue-600 hover:underline">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Auto-distribute across sizes
+                        </button>
+                    </div>
+                    <input type="number" min="1" id="inQuantity" required placeholder="Enter total quantity issued" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Size Assortment 1-13 Input Grid -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-extrabold text-slate-700">Size Assortment breakdown (Sizes 1 to 13)</label>
+                    <div id="inSizeAssortmentGrid" class="grid grid-cols-7 gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Operator / Line Leader</label>
+                        <input type="text" id="inOperator" placeholder="Optional" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Remarks</label>
+                        <input type="text" id="inRemarks" placeholder="Optional notes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('collectingPointModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Confirm Collecting Input (IN)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Assembly End (OUT) Entry -->
+    <div id="assemblyEndModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-emerald-600">
+                    <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                    <h3 class="font-extrabold text-slate-900 text-base">Assembly End Entry (Item OUT)</h3>
+                </div>
+                <button onclick="closeModal('assemblyEndModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="assemblyEndForm" onsubmit="handleAssemblyEndSubmit(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Plan Number *</label>
+                        <select id="outPlanSelect" required onchange="updateOutPlanPreview()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-extrabold text-slate-700">Completion Date</label>
+                            <button type="button" onclick="requestDateUnlock('outEntryDate')" id="outEntryDateUnlockBtn" class="text-[11px] font-bold text-emerald-600 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-lock text-[10px]" id="outEntryDateLockIcon"></i>
+                                <span id="outEntryDateLockText">Unlock Date</span>
+                            </button>
+                        </div>
+                        <input type="date" id="outEntryDate" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 cursor-not-allowed select-none transition">
+                    </div>
+                </div>
+
+                <!-- Preview Info Box -->
+                <div id="outPlanPreview" class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100 text-xs hidden space-y-1">
+                    <div class="flex justify-between font-bold text-emerald-900">
+                        <span id="outPreviewItemCode">Code: -</span>
+                        <span id="outPreviewType" class="bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded text-[10px]">RUBBER</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-emerald-800 text-[11px] pt-1">
+                        <div>Target: <strong id="outPreviewTarget">0</strong></div>
+                        <div>Total IN: <strong id="outPreviewInput">0</strong></div>
+                        <div class="text-amber-700">WIP Balance: <strong id="outPreviewWip">0</strong></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-extrabold text-slate-700">Finished Output Quantity (OUT) *</label>
+                        <button type="button" onclick="distributeProportionally('out')" class="text-[11px] font-bold text-emerald-600 hover:underline">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Auto-distribute output
+                        </button>
+                    </div>
+                    <input type="number" min="1" id="outQuantity" required placeholder="Enter finished output quantity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <!-- Finished Size Assortment 1-13 Input Grid -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-extrabold text-slate-700">Finished Size Assortment (Sizes 1 to 13)</label>
+                    <div id="outSizeAssortmentGrid" class="grid grid-cols-7 gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-extrabold text-rose-700">Defects / Rejects Quantity (If any)</label>
+                        <button type="button" onclick="distributeRejectsProportionally()" class="text-[11px] font-bold text-rose-600 hover:underline">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Auto-distribute rejects
+                        </button>
+                    </div>
+                    <input type="number" min="0" id="outRejectQuantity" value="0" placeholder="0" class="w-full bg-rose-50/50 border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-400">
+                </div>
+
+                <!-- Reject Size Assortment 1-13 Input Grid -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-extrabold text-rose-700">Defect Size Assortment (Sizes 1 to 13)</label>
+                    <div id="outRejectSizeAssortmentGrid" class="grid grid-cols-7 gap-1 bg-rose-50/30 p-2 rounded-xl border border-rose-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Line Inspector / Operator</label>
+                        <input type="text" id="outOperator" placeholder="Optional" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Remarks / Defect Notes</label>
+                        <input type="text" id="outRemarks" placeholder="Optional notes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('assemblyEndModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Confirm Assembly Output (OUT)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2B: Production Receipt (PR / FGW Handover) Entry -->
+    <div id="productionReceiptModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-purple-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-purple-100 pb-3">
+                <div class="flex items-center space-x-2 text-purple-700">
+                    <i class="fa-solid fa-file-invoice text-lg"></i>
+                    <h3 class="font-extrabold text-slate-900 text-base">Production Receipt Entry (FGW Handover)</h3>
+                </div>
+                <button onclick="closeModal('productionReceiptModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="productionReceiptForm" onsubmit="handleProductionReceiptSubmit(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Plan Number *</label>
+                        <select id="prPlanSelect" required onchange="updatePrPlanPreview()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">PR Document Number *</label>
+                        <input type="text" id="prDocNo" required placeholder="e.g. PR-2026-1001" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-extrabold text-slate-700">Receipt Date</label>
+                            <button type="button" onclick="requestDateUnlock('prEntryDate')" id="prEntryDateUnlockBtn" class="text-[11px] font-bold text-purple-600 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-lock text-[10px]" id="prEntryDateLockIcon"></i>
+                                <span id="prEntryDateLockText">Unlock Date</span>
+                            </button>
+                        </div>
+                        <input type="date" id="prEntryDate" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 cursor-not-allowed select-none transition">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-extrabold text-slate-700">Total PR Quantity *</label>
+                            <button type="button" onclick="distributeProportionally('pr')" class="text-[10px] font-bold text-purple-600 hover:underline">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-0.5"></i>Distribute
+                            </button>
+                        </div>
+                        <input type="number" min="1" id="prQuantity" required placeholder="Enter PR qty" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs font-extrabold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+
+                <!-- Preview Info Box -->
+                <div id="prPlanPreview" class="bg-purple-50/70 p-3 rounded-xl border border-purple-100 text-xs hidden space-y-1">
+                    <div class="flex justify-between font-bold text-purple-900">
+                        <span id="prPreviewItemCode">Code: -</span>
+                        <span id="prPreviewType" class="bg-purple-200 text-purple-800 px-2 py-0.5 rounded text-[10px]">RUBBER</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-purple-900 text-[11px] pt-1">
+                        <div>Assembly OUT: <strong id="prPreviewAssemblyOut">0</strong></div>
+                        <div>Total PR Recd: <strong id="prPreviewTotalPr">0</strong></div>
+                        <div class="text-amber-700">Pending FGW: <strong id="prPreviewPendingFgw">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- PR Size Assortment 1-13 Input Grid -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-extrabold text-purple-900">FGW Production Receipt Size Breakdown (Sizes 1 to 13)</label>
+                    <div id="prSizeAssortmentGrid" class="grid grid-cols-7 gap-1 bg-purple-50/30 p-2 rounded-xl border border-purple-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">FGW Receiver / Operator</label>
+                        <input type="text" id="prOperator" placeholder="Optional" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Remarks / Store Location</label>
+                        <input type="text" id="prRemarks" placeholder="Optional notes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('productionReceiptModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Confirm Production Receipt (PR)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Size Assortment Breakdown Matrix -->
+    <div id="sizeMatrixModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 id="sizeMatrixModalTitle" class="font-black text-slate-900 text-base">Size Assortment Matrix (Sizes 1 - 13)</h3>
+                    <p id="sizeMatrixModalSubtitle" class="text-xs text-slate-500">Breakdown of planned target, input, output, PR & WIP per size</p>
+                </div>
+                <button onclick="closeModal('sizeMatrixModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Summary Bar -->
+            <div id="sizeMatrixSummaryBar" class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <!-- Dynamic cells -->
+            </div>
+
+            <!-- Size Matrix Table -->
+            <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
+                <table class="w-full text-center border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-800 text-white font-bold text-[11px]">
+                            <th class="py-2.5 px-3 text-left border-r border-slate-700">Metric Stage</th>
+                            <th class="py-2.5 px-1">Sz 1</th>
+                            <th class="py-2.5 px-1">Sz 2</th>
+                            <th class="py-2.5 px-1">Sz 3</th>
+                            <th class="py-2.5 px-1">Sz 4</th>
+                            <th class="py-2.5 px-1">Sz 5</th>
+                            <th class="py-2.5 px-1">Sz 6</th>
+                            <th class="py-2.5 px-1">Sz 7</th>
+                            <th class="py-2.5 px-1">Sz 8</th>
+                            <th class="py-2.5 px-1">Sz 9</th>
+                            <th class="py-2.5 px-1">Sz 10</th>
+                            <th class="py-2.5 px-1">Sz 11</th>
+                            <th class="py-2.5 px-1">Sz 12</th>
+                            <th class="py-2.5 px-1 border-r border-slate-700">Sz 13</th>
+                            <th class="py-2.5 px-2 bg-slate-900">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sizeMatrixTableBody" class="divide-y divide-slate-200">
+                        <!-- Rows rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeModal('sizeMatrixModal')" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition">Close Matrix</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Add New Plan Item -->
+    <div id="addPlanModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 relative">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-extrabold text-slate-900 text-base">Add New Production Target Plan</h3>
+                <button onclick="closeModal('addPlanModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="addPlanForm" onsubmit="handleAddPlanSubmit(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Item Category *</label>
+                        <select id="newPlanItemType" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                            <option value="Box">Box Item</option>
+                            <option value="Rubber">Rubber Item (GF)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Sale Month *</label>
+                        <select id="newPlanMonth" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                            <option value="OCT">OCT</option>
+                            <option value="NOV">NOV</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">Plan Number *</label>
+                    <input type="text" id="newPlanNo" required placeholder="e.g. 26-10-999GG" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Item Code *</label>
+                        <input type="text" id="newPlanCode" required placeholder="e.g. GD-0428" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Category</label>
+                        <input type="text" id="newPlanCategory" placeholder="e.g. 4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">Spec Type</label>
+                        <input type="text" id="newPlanType" placeholder="e.g. F1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">Delivery Target Qty *</label>
+                    <input type="number" min="1" id="newPlanTargetQty" required placeholder="Enter target quantity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-extrabold text-blue-800 focus:outline-none">
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('addPlanModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl transition">Save Production Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Password Authorization for Reset Data -->
+    <div id="resetPasswordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-rose-100 relative text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h3 class="font-black text-slate-900 text-base">Authorize Data Clear</h3>
+                <p class="text-xs text-slate-500 mt-1">Enter master password to clear all current daily output & PR entries</p>
+            </div>
+
+            <div class="space-y-2 text-left">
+                <input type="password" id="resetPasswordInput" placeholder="Enter master password" onkeydown="if(event.key==='Enter') handleResetDataWithPassword()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <p id="resetPasswordError" class="text-[11px] font-bold text-rose-600 hidden">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>Incorrect password! Access denied.
+                </p>
+            </div>
+
+            <div class="flex space-x-2 pt-1">
+                <button onclick="closeModal('resetPasswordModal')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                <button onclick="handleResetDataWithPassword()" class="w-1/2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Verify & Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5B: Date Unlock Password Authorization Modal -->
+    <div id="dateUnlockModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-blue-100 relative text-center">
+            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-calendar-minus"></i>
+            </div>
+            <div>
+                <h3 class="font-black text-slate-900 text-base">Authorize Date Change</h3>
+                <p class="text-xs text-slate-500 mt-1">Enter master password to modify transaction date</p>
+            </div>
+
+            <div class="space-y-2 text-left">
+                <input type="password" id="dateUnlockPasswordInput" placeholder="Enter master password" onkeydown="if(event.key==='Enter') handleConfirmDateUnlock()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p id="dateUnlockPasswordError" class="text-[11px] font-bold text-rose-600 hidden">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>Incorrect password! Date remains locked.
+                </p>
+            </div>
+
+            <div class="flex space-x-2 pt-1">
+                <button onclick="closeModal('dateUnlockModal')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                <button onclick="handleConfirmDateUnlock()" class="w-1/2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Authorize & Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5C: Firebase Real-Time Sync Configuration Modal -->
+    <div id="syncSettingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-indigo-600">
+                    <i class="fa-solid fa-cloud text-lg"></i>
+                    <h3 class="font-extrabold text-slate-900 text-base">Real-Time Database Sync Setup</h3>
+                </div>
+                <button onclick="closeModal('syncSettingsModal')" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div id="syncDiagnosticBox" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-1">
+                <div class="font-bold text-blue-800 flex items-center gap-1.5"><i class="fa-solid fa-network-wired text-blue-600"></i> Local Network Broadcast Active</div>
+                <p class="text-blue-700 text-[11px]">Updates synchronize automatically across all open tabs and windows on your local network domain. Paste Firebase config below for multi-device cloud sync.</p>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Paste your <strong>Firebase Web App Configuration</strong> code snippet below (copied directly from Firebase Console).
+            </p>
+
+            <form onsubmit="handleSaveSyncConfig(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">Firebase Configuration Code / JSON:</label>
+                    <textarea id="firebaseConfigInput" rows="6" placeholder='Paste directly from Firebase Console, e.g.:
+
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "sml-db.firebaseapp.com",
+  projectId: "sml-db",
+  storageBucket: "sml-db.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};' class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <button type="button" onclick="handleClearSyncConfig()" class="text-rose-600 hover:text-rose-800 text-xs font-bold underline">
+                        Disconnect / Reset Config
+                    </button>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="closeModal('syncSettingsModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">Cancel</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md">Save & Connect</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 6: Custom Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100 relative text-center">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 id="confirmModalTitle" class="font-black text-slate-900 text-base">Confirmation Required</h3>
+                <p id="confirmModalMessage" class="text-xs text-slate-500 mt-1">Are you sure you want to proceed?</p>
+            </div>
+            <div class="flex space-x-2 pt-1">
+                <button onclick="closeModal('confirmModal')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">Cancel</button>
+                <button id="confirmModalActionBtn" class="w-1/2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- Application JavaScript Logic -->
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialize PDF.js worker URL
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const SML_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+        function getTodayDateString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function generateSizeBreakdown(totalQty) {
+            if (!totalQty || totalQty <= 0) return {};
+            const ratios = {
+                1: 0.03, 2: 0.04, 3: 0.06, 4: 0.08, 5: 0.10, 
+                6: 0.14, 7: 0.16, 8: 0.14, 9: 0.10, 10: 0.07, 
+                11: 0.04, 12: 0.02, 13: 0.02
+            };
+            const breakdown = {};
+            let allocated = 0;
+            SML_SIZES.forEach((sz, idx) => {
+                if (idx === SML_SIZES.length - 1) {
+                    breakdown[sz] = Math.max(0, totalQty - allocated);
+                } else {
+                    const qty = Math.floor(totalQty * ratios[sz]);
+                    breakdown[sz] = qty;
+                    allocated += qty;
+                }
+            });
+            return breakdown;
+        }
+
+        const initialPlans = [
+            // Box Items
+            { planNo: "26-09-203GP", code: "GD-0428", category: "4", type: "F1", targetQty: 80, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-203GR", code: "GD-0428", category: "4", type: "F1", targetQty: 930, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-217GG", code: "GD-0428", category: "4", type: "F1", targetQty: 1010, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-206GP", code: "JC-0527", category: "3", type: "F3", targetQty: 60, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-206GR", code: "JC-0527", category: "3", type: "F3", targetQty: 940, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-225GG", code: "JC-0527", category: "3", type: "F3", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-276GP", code: "JD-0521", category: "4", type: "F1", targetQty: 80, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-276GR", code: "JD-0521", category: "4", type: "F1", targetQty: 920, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-226GG", code: "JD-0521", category: "4", type: "F1", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-207GP", code: "JD-0522", category: "4", type: "F1", targetQty: 80, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-207GR", code: "JD-0522", category: "4", type: "F1", targetQty: 920, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-227GG", code: "JD-0522", category: "4", type: "F1", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-208GP", code: "JD-0523", category: "4", type: "F3", targetQty: 60, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-208GR", code: "JD-0523", category: "4", type: "F3", targetQty: 940, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-228GG", code: "JD-0523", category: "4", type: "F3", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-239GG", code: "OC-0521", category: "3", type: "F3", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-268GG", code: "GC-0445", category: "3", type: "F2", targetQty: 1040, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-373GP", code: "GD-0444", category: "4", type: "EVA", targetQty: 50, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-240GG", code: "GC-0498", category: "3", type: "F1", targetQty: 1040, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-241GG", code: "GC-0499", category: "3", type: "F1", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-242GG", code: "GC-0499", category: "3", type: "F1", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-216GG", code: "GD-0425", category: "4", type: "F2", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-218GG", code: "GD-0429", category: "4", type: "F1", targetQty: 1010, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-279GP", code: "GC-0445", category: "3", type: "F2", targetQty: 70, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-279GR", code: "GC-0445", category: "3", type: "F2", targetQty: 930, month: "OCT", itemType: "Box" },
+            { planNo: "26-09-267GG", code: "GC-0445", category: "3", type: "F2", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-358GG", code: "GC-0440", category: "3", type: "EVA", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-368GG", code: "GA-0478", category: "1", type: "EVA", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-369GG", code: "GA-0478", category: "1", type: "EVA", targetQty: 500, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-370GG", code: "GA-0479", category: "1", type: "EVA", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-371GG", code: "GA-0479", category: "1", type: "EVA", targetQty: 500, month: "OCT", itemType: "Box" },
+            { planNo: "26-11-111GG", code: "GC-0438", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-112GG", code: "GC-0438", category: "3", type: "F2", targetQty: 1040, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-113GG", code: "GC-0439", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-114GG", code: "GC-0439", category: "3", type: "F2", targetQty: 1040, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-118GG", code: "GC-0442", category: "3", type: "F1", targetQty: 1020, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-119GG", code: "GC-0442", category: "3", type: "F1", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-120GG", code: "GC-0442", category: "3", type: "F1", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-121GG", code: "GC-0444", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-122GG", code: "GC-0444", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
+            { planNo: "26-11-123GG", code: "GC-0444", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
+
+            // Rubber Items (GF)
+            { planNo: "26-09-432GG", code: "GF0286", category: "GENS", type: "GF-RUBBER", targetQty: 5040, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-09-480GR", code: "GF0292", category: "KID", type: "GF-RUBBER", targetQty: 5105, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-09-491GG", code: "GF0300", category: "GENS", type: "GF-RUBBER", targetQty: 5000, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-399GG", code: "GD-0434", category: "4", type: "F3", targetQty: 1000, month: "OCT", itemType: "Box" },
+            { planNo: "26-10-696GG", code: "GF0286", category: "GENS", type: "GF-RUBBER", targetQty: 5000, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-697GG", code: "GF0286", category: "GENS", type: "GF-RUBBER", targetQty: 5040, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-704GG", code: "GF0289", category: "LADIES", type: "GF-RUBBER", targetQty: 6080, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-707GG", code: "GF0292", category: "KID", type: "GF-RUBBER", targetQty: 5000, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-708GG", code: "GF0292", category: "KID", type: "GF-RUBBER", targetQty: 3120, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-709GG", code: "GF0293", category: "KID", type: "GF-RUBBER", targetQty: 3080, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-722GG", code: "GF0309", category: "LADIES", type: "GF-RUBBER", targetQty: 5000, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-723GG", code: "GF0309", category: "LADIES", type: "GF-RUBBER", targetQty: 3080, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-716GG", code: "GF0300", category: "GENS", type: "GF-RUBBER", targetQty: 4120, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-706GP", code: "GF0291", category: "KID", type: "GF-RUBBER", targetQty: 80, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-706GR", code: "GF0291", category: "KID", type: "GF-RUBBER", targetQty: 3080, month: "OCT", itemType: "Rubber" },
+            { planNo: "26-10-821GG", code: "GF0315", category: "GENS", type: "GF-RUBBER", targetQty: 4120, month: "OCT", itemType: "Rubber" }
+        ];
+
+        function setText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        /* Central State Store */
+        let state = {
+            plans: [],
+            logs: [],
+            deletedLogs: [],
+            filterType: 'ALL',
+            filterMonth: 'ALL',
+            filterStatus: 'ALL',
+            searchQuery: '',
+            currentTab: 'overview',
+            parsedPdfData: null
+        };
+
+        let pendingDateTargetId = null;
+
+        const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sml_dashboard_sync_channel') : null;
+
+        if (broadcastChannel) {
+            broadcastChannel.onmessage = (event) => {
+                if (event.data && event.data.type === 'SML_STATE_UPDATE') {
+                    const { plans, logs, deletedLogs } = event.data.payload;
+                    state.plans = plans || state.plans;
+                    state.logs = logs || state.logs;
+                    state.deletedLogs = deletedLogs || state.deletedLogs;
+                    
+                    localStorage.setItem('sml_plans_data_v4', JSON.stringify(state.plans));
+                    localStorage.setItem('sml_logs_data_v4', JSON.stringify(state.logs));
+                    localStorage.setItem('sml_deleted_logs_v4', JSON.stringify(state.deletedLogs));
+                    
+                    refreshUI();
+                }
+            };
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'sml_plans_data_v4' || e.key === 'sml_logs_data_v4' || e.key === 'sml_deleted_logs_v4') {
+                const savedPlans = localStorage.getItem('sml_plans_data_v4');
+                const savedLogs = localStorage.getItem('sml_logs_data_v4');
+                const savedDeletedLogs = localStorage.getItem('sml_deleted_logs_v4');
+                if (savedPlans) state.plans = JSON.parse(savedPlans);
+                if (savedLogs) state.logs = JSON.parse(savedLogs);
+                if (savedDeletedLogs) state.deletedLogs = JSON.parse(savedDeletedLogs);
+                refreshUI();
+            }
+        });
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
+        function updateSyncBadge(isOnline, text, detailError = null) {
+            const badge = document.getElementById('syncStatusBadge');
+            const txtEl = document.getElementById('syncStatusText');
+            if (!badge || !txtEl) return;
+            
+            txtEl.innerText = text;
+            if (isOnline) {
+                badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 cursor-pointer hover:bg-emerald-100 transition";
+                badge.title = "Real-time sync active across devices. Click to manage settings.";
+            } else {
+                badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition";
+                badge.title = detailError ? `Sync Notice: ${detailError}. Click to view settings.` : "Local Network Sync Active. Click to add Cloud Firebase Sync.";
+            }
+
+            const diagBox = document.getElementById('syncDiagnosticBox');
+            if (diagBox) {
+                if (isOnline) {
+                    diagBox.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs space-y-1";
+                    diagBox.innerHTML = `<div class="font-bold text-emerald-800 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Cloud Real-Time Database Connected</div><p class="text-emerald-700 text-[11px]">All transaction updates sync instantly across all connected devices and browsers in real time.</p>`;
+                } else if (detailError) {
+                    diagBox.className = "bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs space-y-1.5";
+                    diagBox.innerHTML = `<div class="font-bold text-rose-800 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Cloud Sync Notice (${detailError})</div><div class="text-rose-700 text-[11px] leading-relaxed">Check Firebase Console settings or use Local Network Mode.</div>`;
+                } else {
+                    diagBox.className = "bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-1";
+                    diagBox.innerHTML = `<div class="font-bold text-blue-800 flex items-center gap-1.5"><i class="fa-solid fa-network-wired text-blue-600"></i> Local Network Broadcast Active</div><p class="text-blue-700 text-[11px]">Updates synchronize automatically across all open tabs and windows on your local network domain.</p>`;
+                }
+            }
+        }
+
+        function parseFirebaseConfigInput(rawInput) {
+            if (!rawInput || !rawInput.trim()) return null;
+            let str = rawInput.trim();
+            try {
+                const parsed = JSON.parse(str);
+                if (parsed && parsed.apiKey) return parsed;
+            } catch (e) {}
+
+            const extractKey = (keyName) => {
+                const regex = new RegExp(`${keyName}\\s*:\\s*["']([^"']+)["']`, 'i');
+                const match = str.match(regex);
+                return match ? match[1] : null;
+            };
+
+            const apiKey = extractKey('apiKey');
+            const authDomain = extractKey('authDomain');
+            const projectId = extractKey('projectId');
+            const storageBucket = extractKey('storageBucket');
+            const messagingSenderId = extractKey('messagingSenderId');
+            const appId = extractKey('appId');
+
+            if (apiKey && projectId) {
+                return { apiKey, authDomain: authDomain || `${projectId}.firebaseapp.com`, projectId, storageBucket: storageBucket || `${projectId}.appspot.com`, messagingSenderId: messagingSenderId || '', appId: appId || '' };
+            }
+            return null;
+        }
+
+        async function initFirebaseSync() {
+            let firebaseConfig = null;
+            const customConfigStr = localStorage.getItem('sml_custom_firebase_config');
+            if (customConfigStr) {
+                try { firebaseConfig = JSON.parse(customConfigStr); } catch(e) {}
+            }
+            if (!firebaseConfig && typeof __firebase_config !== 'undefined') {
+                try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+            }
+            if (!firebaseConfig) {
+                updateSyncBadge(false, "Local Network Sync Active");
+                return;
+            }
+
+            try {
+                let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (authErr) {
+                        updateSyncBadge(false, `Sync Error: ${authErr.code || 'Auth Failed'}`);
+                        return;
+                    }
+                }
+
+                currentUser = auth.currentUser;
+                if (currentUser) setupRealtimeListener();
+            } catch (err) {
+                updateSyncBadge(false, "Sync Error", err.code || err.message);
+            }
+        }
+
+        function setupRealtimeListener() {
+            if (!db || !currentUser) return;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
+            const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
+
+            onSnapshot(stateDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.plans) state.plans = data.plans;
+                    if (data.logs) state.logs = data.logs;
+                    if (data.deletedLogs) state.deletedLogs = data.deletedLogs;
+
+                    localStorage.setItem('sml_plans_data_v4', JSON.stringify(state.plans));
+                    localStorage.setItem('sml_logs_data_v4', JSON.stringify(state.logs));
+                    localStorage.setItem('sml_deleted_logs_v4', JSON.stringify(state.deletedLogs));
+
+                    refreshUI();
+                } else {
+                    saveStore(true);
+                }
+                updateSyncBadge(true, "Cloud Real-Time Sync Active");
+            }, (error) => {
+                updateSyncBadge(false, `Sync Notice: ${error.code || 'Firestore'}`, error.code || error.message);
+            });
+        }
+
+        function initStore() {
+            const savedPlans = localStorage.getItem('sml_plans_data_v4');
+            const savedLogs = localStorage.getItem('sml_logs_data_v4');
+            const savedDeletedLogs = localStorage.getItem('sml_deleted_logs_v4');
+
+            state.plans = savedPlans ? JSON.parse(savedPlans) : initialPlans;
+            state.logs = savedLogs ? JSON.parse(savedLogs) : [];
+            state.deletedLogs = savedDeletedLogs ? JSON.parse(savedDeletedLogs) : [];
+
+            const todayStr = getTodayDateString();
+            const inDateEl = document.getElementById('inEntryDate');
+            const outDateEl = document.getElementById('outEntryDate');
+            const prDateEl = document.getElementById('prEntryDate');
+            if (inDateEl) inDateEl.value = todayStr;
+            if (outDateEl) outDateEl.value = todayStr;
+            if (prDateEl) prDateEl.value = todayStr;
+
+            initFirebaseSync();
+        }
+
+        async function saveStore(skipBroadcast = false) {
+            localStorage.setItem('sml_plans_data_v4', JSON.stringify(state.plans));
+            localStorage.setItem('sml_logs_data_v4', JSON.stringify(state.logs));
+            localStorage.setItem('sml_deleted_logs_v4', JSON.stringify(state.deletedLogs));
+
+            if (!skipBroadcast && broadcastChannel) {
+                broadcastChannel.postMessage({
+                    type: 'SML_STATE_UPDATE',
+                    payload: { plans: state.plans, logs: state.logs, deletedLogs: state.deletedLogs }
+                });
+            }
+
+            if (db && currentUser) {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
+                    const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
+                    await setDoc(stateDocRef, {
+                        plans: state.plans,
+                        logs: state.logs,
+                        deletedLogs: state.deletedLogs,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: currentUser.uid
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Firestore write error:", e);
+                }
+            }
+        }
+
+        async function handlePdfFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                showToast("Reading and extracting text from PDF report...", "info");
+                let extractedText = "";
+
+                if (file.name.endsWith('.pdf')) {
+                    if (!window.pdfjsLib) {
+                        showToast("PDF parsing library not loaded. Please try pasting raw report text.", "warning");
+                        return;
+                    }
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        extractedText += pageText + '\n';
+                    }
+                } else {
+                    extractedText = await file.text();
+                }
+
+                parseScanPdfText(extractedText, file.name);
+            } catch (err) {
+                console.error("PDF Parsing Error:", err);
+                showToast("Error parsing PDF report file. Try pasting report text directly.", "warning");
+            }
+            e.target.value = '';
+        }
+
+        function handleRawTextParse() {
+            const rawText = document.getElementById('pdfRawTextInput')?.value;
+            if (!rawText || !rawText.trim()) {
+                showToast("Please paste report text before parsing.", "warning");
+                return;
+            }
+            parseScanPdfText(rawText, "Manual Paste Text");
+        }
+
+        function parseScanPdfText(text, sourceName) {
+            console.log("Raw Scanned Text Extracted:", text);
+
+            // Extract Report Date (e.g. 15/10/2026 or 20261015)
+            let reportDate = getTodayDateString();
+            const dateMatchDmy = text.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
+            const dateMatchYmd = text.match(/Date:\s*(\d{4})(\d{2})(\d{2})/i);
+
+            if (dateMatchDmy) {
+                const day = String(dateMatchDmy[1]).padStart(2, '0');
+                const month = String(dateMatchDmy[2]).padStart(2, '0');
+                const year = dateMatchDmy[3];
+                reportDate = `${year}-${month}-${day}`;
+            } else if (dateMatchYmd) {
+                reportDate = `${dateMatchYmd[1]}-${dateMatchYmd[2]}-${dateMatchYmd[3]}`;
+            }
+
+            // Extract Line Name & Time
+            const lineMatch = text.match(/(AM Line Scanned|PM Line Scanned|[A-Z0-9\s]+Scanned)/i);
+            const reportLine = lineMatch ? lineMatch[1] : "AM Line Scanned";
+
+            const timeMatch = text.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM)?)/i);
+            const reportTime = timeMatch ? timeMatch[1] : new Date().toLocaleTimeString();
+
+            // Extract Plan Rows (Looking for Plan Numbers matching format: e.g. 26-09-203GR, 26-10-399GG, 26-09-480GR, 26-09-491GG)
+            const rows = [];
+            
+            // Regex to locate plan numbers with surrounding tokens
+            const planRegex = /([A-Z0-9-]+)\s+(26-\d{2}-\d{3}[A-Z]{2})\s+([\d\s]+)/gi;
+            let match;
+
+            while ((match = planRegex.exec(text)) !== null) {
+                const itemCode = match[1].trim();
+                const planNo = match[2].trim();
+                const numbersStr = match[3].trim();
+
+                // Extract individual size numbers
+                const nums = numbersStr.split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+                
+                if (nums.length >= 1) {
+                    const rowTotal = nums[nums.length - 1]; // Last number in row is the total sum
+                    const sizeNums = nums.slice(0, nums.length - 1);
+                    
+                    const sizes = {};
+                    SML_SIZES.forEach((sz, idx) => {
+                        sizes[sz] = (idx < sizeNums.length) ? sizeNums[idx] : 0;
+                    });
+
+                    rows.push({
+                        itemCode,
+                        planNo,
+                        sizes,
+                        totalQty: rowTotal || Object.values(sizes).reduce((a, b) => a + b, 0)
+                    });
+                }
+            }
+
+            // Fallback line parser if strict regex miss
+            if (rows.length === 0) {
+                const lines = text.split('\n');
+                lines.forEach(line => {
+                    const pMatch = line.match(/(26-\d{2}-\d{3}[A-Z]{2})/);
+                    if (pMatch) {
+                        const planNo = pMatch[1];
+                        const tokens = line.trim().split(/\s+/);
+                        const code = tokens[0] || "N/A";
+                        const nums = tokens.filter(t => /^\d+$/.test(t)).map(Number);
+                        
+                        if (nums.length > 0) {
+                            const total = nums.pop();
+                            const sizes = {};
+                            SML_SIZES.forEach((sz, idx) => {
+                                sizes[sz] = nums[idx] || 0;
+                            });
+                            rows.push({ itemCode: code, planNo, sizes, totalQty: total });
+                        }
+                    }
+                });
+            }
+
+            if (rows.length === 0) {
+                showToast("Could not find structured plan data in report.", "warning");
+                return;
+            }
+
+            state.parsedPdfData = {
+                reportDate,
+                reportLine,
+                reportTime,
+                sourceName,
+                rows
+            };
+
+            renderPdfPreviewModal();
+            showToast(`Successfully extracted ${rows.length} plan entries from ${sourceName}!`, "success");
+        }
+
+        function renderPdfPreviewModal() {
+            if (!state.parsedPdfData) return;
+            const data = state.parsedPdfData;
+
+            setText('pdfReportDate', data.reportDate);
+            setText('pdfReportLine', data.reportLine);
+            setText('pdfReportTime', data.reportTime);
+            setText('pdfParsedRowsBadge', `${data.rows.length} plan rows extracted`);
+
+            const tbody = document.getElementById('pdfParsedTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                data.rows.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 text-xs";
+                    
+                    let breakdownStr = SML_SIZES.map(sz => r.sizes[sz] > 0 ? `<strong>Sz${sz}:</strong> ${r.sizes[sz]}` : null)
+                        .filter(Boolean).join(', ');
+                    if (!breakdownStr) breakdownStr = '<span class="text-slate-400">0 across all sizes</span>';
+
+                    tr.innerHTML = `
+                        <td class="p-2 font-bold text-slate-800">${r.itemCode}</td>
+                        <td class="p-2 font-bold text-rose-700">${r.planNo}</td>
+                        <td class="p-2 text-slate-600">${breakdownStr}</td>
+                        <td class="p-2 text-right font-black text-emerald-700">+${formatNumber(r.totalQty)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const previewContainer = document.getElementById('pdfParsePreviewContainer');
+            if (previewContainer) previewContainer.classList.remove('hidden');
+            openModal('pdfUploadModal');
+        }
+
+        async function confirmImportParsedPdfData() {
+            if (!state.parsedPdfData || !state.parsedPdfData.rows.length) return;
+
+            const { reportDate, reportLine, reportTime, rows } = state.parsedPdfData;
+            let importedCount = 0;
+
+            rows.forEach(r => {
+                // Check if Plan No exists in master plans, else auto-register
+                let plan = state.plans.find(p => p.planNo === r.planNo);
+                if (!plan) {
+                    const isRubber = r.itemCode.startsWith('GF') || r.itemCode.startsWith('G');
+                    plan = {
+                        planNo: r.planNo,
+                        code: r.itemCode,
+                        category: isRubber ? "GENS" : "4",
+                        type: isRubber ? "GF-RUBBER" : "F1",
+                        targetQty: Math.max(1000, r.totalQty * 2),
+                        month: "OCT",
+                        itemType: isRubber ? "Rubber" : "Box"
+                    };
+                    state.plans.push(plan);
+                }
+
+                // Append to Assembly OUT daily logs
+                state.logs.push({
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    date: reportDate,
+                    type: 'OUT',
+                    planNo: r.planNo,
+                    qty: r.totalQty,
+                    sizes: r.sizes,
+                    rejects: 0,
+                    rejectSizes: {},
+                    operator: reportLine,
+                    remarks: `System Scan Import (${reportTime})`
+                });
+                importedCount++;
+            });
+
+            await saveStore();
+            closeModal('pdfUploadModal');
+            state.parsedPdfData = null;
+            
+            const previewContainer = document.getElementById('pdfParsePreviewContainer');
+            if (previewContainer) previewContainer.classList.add('hidden');
+
+            refreshUI();
+            showToast(`Successfully imported ${importedCount} assembly OUT scan entries for ${reportDate}!`, "success");
+        }
+
+        function handleSaveSyncConfig(e) {
+            if (e) e.preventDefault();
+            const inputEl = document.getElementById('firebaseConfigInput');
+            const parsedConfig = parseFirebaseConfigInput(inputEl ? inputEl.value : '');
+            if (!parsedConfig) {
+                showToast("Invalid Firebase config snippet!", "warning");
+                return;
+            }
+            localStorage.setItem('sml_custom_firebase_config', JSON.stringify(parsedConfig));
+            showToast("Saved Firebase Configuration. Connecting...", "info");
+            closeModal('syncSettingsModal');
+            initFirebaseSync();
+        }
+
+        function handleClearSyncConfig() {
+            localStorage.removeItem('sml_custom_firebase_config');
+            db = null; auth = null; currentUser = null;
+            updateSyncBadge(false, "Local Network Sync Active");
+            showToast("Disconnected cloud database. Reverted to Local Network mode.", "info");
+            closeModal('syncSettingsModal');
+        }
+
+        function exportBackupJSON() {
+            const backupData = {
+                app: "SML Production Plan & Output Dashboard",
+                version: "4.0",
+                exportDate: new Date().toISOString(),
+                plans: state.plans,
+                logs: state.logs,
+                deletedLogs: state.deletedLogs
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `SML_Dashboard_Backup_${getTodayDateString()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Database backup downloaded successfully (JSON)!", "success");
+        }
+
+        function triggerRestoreFileInput() {
+            const input = document.getElementById('backupFileInput');
+            if (input) input.click();
+        }
+
+        function handleRestoreJSONFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    if (!imported.plans || !Array.isArray(imported.plans)) {
+                        showToast("Invalid backup JSON structure!", "warning");
+                        return;
+                    }
+
+                    showConfirm(
+                        "Restore Full Database Backup",
+                        `Restoring backup from ${imported.exportDate ? new Date(imported.exportDate).toLocaleString() : 'file'} will update all data. Proceed?`,
+                        async () => {
+                            state.plans = imported.plans || [];
+                            state.logs = imported.logs || [];
+                            state.deletedLogs = imported.deletedLogs || [];
+                            await saveStore();
+                            refreshUI();
+                            showToast("Database restored successfully from backup!", "success");
+                        }
+                    );
+                } catch (err) {
+                    showToast("Failed to parse JSON backup file.", "warning");
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function handleResetDataWithPassword() {
+            const pwdInput = document.getElementById('resetPasswordInput');
+            const errEl = document.getElementById('resetPasswordError');
+            const enteredPwd = pwdInput ? pwdInput.value.trim() : '';
+
+            if (enteredPwd === 'Chama123') {
+                state.logs = [];
+                state.deletedLogs = [];
+                state.plans = JSON.parse(JSON.stringify(initialPlans));
+                saveStore();
+                closeModal('resetPasswordModal');
+                refreshUI();
+                showToast("All daily transaction logs cleared successfully!", "success");
+            } else {
+                if (errEl) errEl.classList.remove('hidden');
+                if (pwdInput) pwdInput.focus();
+                showToast("Incorrect Password! Access denied.", "warning");
+            }
+        }
+
+        /* Authorized Date Editing Logic */
+        function requestDateUnlock(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            if (!input.hasAttribute('readonly')) {
+                showToast("Date field is already unlocked for editing.", "info");
+                return;
+            }
+            pendingDateTargetId = inputId;
+            const pwdInput = document.getElementById('dateUnlockPasswordInput');
+            const errEl = document.getElementById('dateUnlockPasswordError');
+            if (pwdInput) pwdInput.value = '';
+            if (errEl) errEl.classList.add('hidden');
+            openModal('dateUnlockModal');
+            setTimeout(() => { if (pwdInput) pwdInput.focus(); }, 100);
+        }
+
+        function handleConfirmDateUnlock() {
+            const pwdInput = document.getElementById('dateUnlockPasswordInput');
+            const errEl = document.getElementById('dateUnlockPasswordError');
+            const entered = pwdInput ? pwdInput.value.trim() : '';
+
+            if (entered === 'Chama123') {
+                if (pendingDateTargetId) {
+                    const dateInput = document.getElementById(pendingDateTargetId);
+                    if (dateInput) {
+                        dateInput.removeAttribute('readonly');
+                        dateInput.classList.remove('bg-slate-100', 'cursor-not-allowed', 'select-none');
+                        dateInput.classList.add('bg-white', 'cursor-pointer', 'focus:ring-2', 'focus:ring-blue-500');
+                        
+                        let prefix = '';
+                        if (pendingDateTargetId === 'inEntryDate') prefix = 'in';
+                        else if (pendingDateTargetId === 'outEntryDate') prefix = 'out';
+                        else if (pendingDateTargetId === 'prEntryDate') prefix = 'pr';
+
+                        const lockIcon = document.getElementById(`${prefix}EntryDateLockIcon`);
+                        const lockText = document.getElementById(`${prefix}EntryDateLockText`);
+                        if (lockIcon) { lockIcon.className = 'fa-solid fa-lock-open text-emerald-600'; }
+                        if (lockText) { lockText.innerText = 'Unlocked'; lockText.className = 'text-emerald-600 font-extrabold'; }
+                    }
+                }
+                closeModal('dateUnlockModal');
+                showToast("Date field unlocked! You can now select a custom date.", "success");
+            } else {
+                if (errEl) errEl.classList.remove('hidden');
+                if (pwdInput) pwdInput.focus();
+                showToast("Incorrect Password! Date remains locked.", "warning");
+            }
+        }
+
+        function lockDateField(inputId) {
+            const dateInput = document.getElementById(inputId);
+            if (!dateInput) return;
+            dateInput.setAttribute('readonly', 'readonly');
+            dateInput.classList.add('bg-slate-100', 'cursor-not-allowed', 'select-none');
+            dateInput.classList.remove('bg-white', 'cursor-pointer', 'focus:ring-2', 'focus:ring-blue-500');
+
+            let prefix = '';
+            if (inputId === 'inEntryDate') prefix = 'in';
+            else if (inputId === 'outEntryDate') prefix = 'out';
+            else if (inputId === 'prEntryDate') prefix = 'pr';
+
+            const lockIcon = document.getElementById(`${prefix}EntryDateLockIcon`);
+            const lockText = document.getElementById(`${prefix}EntryDateLockText`);
+            if (lockIcon) { lockIcon.className = 'fa-solid fa-lock text-[10px]'; }
+            if (lockText) { lockText.innerText = 'Unlock Date'; lockText.className = ''; }
+        }
+
+        /* Calculate complete stats for a given plan number including Production Receipts (PR) */
+        function getPlanStats(planNo) {
+            const planLogs = state.logs.filter(l => l.planNo === planNo);
+            const inputQty = planLogs.filter(l => l.type === 'IN').reduce((sum, l) => sum + Number(l.qty), 0);
+            const outputQty = planLogs.filter(l => l.type === 'OUT').reduce((sum, l) => sum + Number(l.qty), 0);
+            const prQty = planLogs.filter(l => l.type === 'PR').reduce((sum, l) => sum + Number(l.qty), 0);
+            const rejectQty = planLogs.filter(l => l.type === 'OUT').reduce((sum, l) => sum + Number(l.rejects || 0), 0);
+            
+            const wipQty = Math.max(0, inputQty - outputQty);
+            const pendingPrQty = Math.max(0, outputQty - prQty);
+
+            const planObj = state.plans.find(p => p.planNo === planNo) || {};
+            const sizeTargets = generateSizeBreakdown(planObj.targetQty || 0);
+            const sizeInputs = {};
+            const sizeOutputs = {};
+            const sizePrs = {};
+            const sizeRejects = {};
+            const sizeWips = {};
+            const sizePendingPrs = {};
+
+            SML_SIZES.forEach(sz => {
+                sizeInputs[sz] = 0;
+                sizeOutputs[sz] = 0;
+                sizePrs[sz] = 0;
+                sizeRejects[sz] = 0;
+            });
+
+            planLogs.forEach(l => {
+                if (l.sizes) {
+                    SML_SIZES.forEach(sz => {
+                        const val = Number(l.sizes[sz] || 0);
+                        if (l.type === 'IN') sizeInputs[sz] += val;
+                        if (l.type === 'OUT') sizeOutputs[sz] += val;
+                        if (l.type === 'PR') sizePrs[sz] += val;
+                    });
+                }
+                if (l.type === 'OUT' && l.rejectSizes) {
+                    SML_SIZES.forEach(sz => {
+                        sizeRejects[sz] += Number(l.rejectSizes[sz] || 0);
+                    });
+                }
+            });
+
+            SML_SIZES.forEach(sz => {
+                sizeWips[sz] = Math.max(0, sizeInputs[sz] - sizeOutputs[sz]);
+                sizePendingPrs[sz] = Math.max(0, sizeOutputs[sz] - sizePrs[sz]);
+            });
+
+            return { inputQty, outputQty, prQty, rejectQty, wipQty, pendingPrQty, sizeTargets, sizeInputs, sizeOutputs, sizePrs, sizeRejects, sizeWips, sizePendingPrs };
+        }
+
+        function getFilteredPlans() {
+            return state.plans.filter(p => {
+                const matchesType = state.filterType === 'ALL' || p.itemType === state.filterType;
+                const matchesMonth = state.filterMonth === 'ALL' || p.month === state.filterMonth;
+                const q = state.searchQuery.toLowerCase();
+                const matchesSearch = !q || 
+                    p.planNo.toLowerCase().includes(q) || 
+                    p.code.toLowerCase().includes(q) || 
+                    p.type.toLowerCase().includes(q) ||
+                    p.category.toLowerCase().includes(q);
+
+                return matchesType && matchesMonth && matchesSearch;
+            });
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat().format(num || 0);
+        }
+
+        function switchTab(tabKey) {
+            state.currentTab = tabKey;
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            const targetView = document.getElementById(`tabView-${tabKey}`);
+            if (targetView) targetView.classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-blue-700', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`tabBtn-${tabKey}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-600');
+                activeBtn.classList.add('bg-white', 'text-blue-700', 'shadow-sm');
+            }
+
+            if (tabKey === 'overview') renderCharts();
+            else if (tabKey === 'wip' || tabKey === 'prTracker') renderActiveTrackers();
+        }
+
+        function setFilter(type, value) {
+            if (type === 'type') {
+                state.filterType = value;
+                document.querySelectorAll('.filter-type-btn').forEach(btn => {
+                    btn.classList.remove('bg-slate-800', 'text-white');
+                    btn.classList.add('text-slate-600');
+                });
+                const activeBtn = document.getElementById(`filter-type-${value}`);
+                if (activeBtn) activeBtn.classList.add('bg-slate-800', 'text-white');
+            } else if (type === 'month') {
+                state.filterMonth = value;
+            }
+            refreshUI();
+        }
+
+        function handleSearch() {
+            const input = document.getElementById('searchInput');
+            if (input) {
+                state.searchQuery = input.value.trim();
+                refreshUI();
+            }
+        }
+
+        let dailyTrendChartInstance = null;
+        let itemTypeChartInstance = null;
+
+        function renderCharts() {
+            const datesMap = {};
+            state.logs.forEach(l => {
+                if (!datesMap[l.date]) datesMap[l.date] = { in: 0, out: 0, pr: 0 };
+                if (l.type === 'IN') datesMap[l.date].in += Number(l.qty);
+                if (l.type === 'OUT') datesMap[l.date].out += Number(l.qty);
+                if (l.type === 'PR') datesMap[l.date].pr += Number(l.qty);
+            });
+
+            const sortedDates = Object.keys(datesMap).sort();
+            const inData = sortedDates.map(d => datesMap[d].in);
+            const outData = sortedDates.map(d => datesMap[d].out);
+            const prData = sortedDates.map(d => datesMap[d].pr);
+
+            const trendCanvas = document.getElementById('dailyTrendChart');
+            if (trendCanvas) {
+                const ctxTrend = trendCanvas.getContext('2d');
+                if (dailyTrendChartInstance) dailyTrendChartInstance.destroy();
+
+                dailyTrendChartInstance = new Chart(ctxTrend, {
+                    type: 'line',
+                    data: {
+                        labels: sortedDates.length > 0 ? sortedDates : [getTodayDateString()],
+                        datasets: [
+                            {
+                                label: 'Collecting (IN)',
+                                data: inData.length > 0 ? inData : [0],
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3
+                            },
+                            {
+                                label: 'Assembly (OUT)',
+                                data: outData.length > 0 ? outData : [0],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3
+                            },
+                            {
+                                label: 'Production Receipt (PR)',
+                                data: prData.length > 0 ? prData : [0],
+                                borderColor: '#9333ea',
+                                backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                                fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 10 } } },
+                            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } }
+                        }
+                    }
+                });
+            }
+
+            let boxOutput = 0;
+            let rubberOutput = 0;
+            state.logs.filter(l => l.type === 'OUT').forEach(l => {
+                const plan = state.plans.find(p => p.planNo === l.planNo);
+                if (plan) {
+                    if (plan.itemType === 'Box') boxOutput += Number(l.qty);
+                    else if (plan.itemType === 'Rubber') rubberOutput += Number(l.qty);
+                }
+            });
+
+            const typeCanvas = document.getElementById('itemTypeChart');
+            if (typeCanvas) {
+                const ctxType = typeCanvas.getContext('2d');
+                if (itemTypeChartInstance) itemTypeChartInstance.destroy();
+
+                itemTypeChartInstance = new Chart(ctxType, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Box Items', 'Rubber Items (GF)'],
+                        datasets: [{
+                            data: [boxOutput || 1, rubberOutput || 1],
+                            backgroundColor: ['#3b82f6', '#10b981'],
+                            borderWidth: 3, borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, cutout: '70%',
+                        plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11, weight: '600' }, padding: 15 } } }
+                    }
+                });
+            }
+        }
+
+        function refreshUI() {
+            const filteredPlans = getFilteredPlans();
+
+            let totalTarget = 0;
+            let totalInput = 0;
+            let totalOutput = 0;
+            let totalPR = 0;
+            let totalRejects = 0;
+
+            filteredPlans.forEach(p => {
+                totalTarget += Number(p.targetQty);
+                const stats = getPlanStats(p.planNo);
+                totalInput += stats.inputQty;
+                totalOutput += stats.outputQty;
+                totalPR += stats.prQty;
+                totalRejects += stats.rejectQty;
+            });
+
+            const totalWip = Math.max(0, totalInput - totalOutput);
+            const totalPendingFGW = Math.max(0, totalOutput - totalPR);
+            const inputPct = totalTarget > 0 ? ((totalInput / totalTarget) * 100).toFixed(1) : 0;
+            const outputPct = totalTarget > 0 ? ((totalOutput / totalTarget) * 100).toFixed(1) : 0;
+            const prPct = totalOutput > 0 ? ((totalPR / totalOutput) * 100).toFixed(1) : 0;
+            const yieldPct = totalOutput > 0 ? (((totalOutput - totalRejects) / totalOutput) * 100).toFixed(1) : 100;
+
+            setText('kpi-target-qty', formatNumber(totalTarget));
+            setText('kpi-target-plans-count', `${filteredPlans.length} production items`);
+            setText('kpi-input-qty', formatNumber(totalInput));
+            setText('kpi-input-pct', `${inputPct}% of target issued`);
+            setText('kpi-wip-qty', formatNumber(totalWip));
+            setText('kpi-output-qty', formatNumber(totalOutput));
+            setText('kpi-output-pct', `${outputPct}% target achieved`);
+            setText('kpi-pr-qty', formatNumber(totalPR));
+            setText('kpi-pr-pct', `${prPct}% FGW handed over`);
+            setText('kpi-pending-fgw-text', `${formatNumber(totalPendingFGW)} pending FGW`);
+            setText('kpi-reject-qty', formatNumber(totalRejects));
+            setText('kpi-yield-pct', `${yieldPct}% Quality Yield`);
+
+            const boxTargetTotal = filteredPlans.filter(p => p.itemType === 'Box').reduce((s, p) => s + Number(p.targetQty), 0);
+            const rubberTargetTotal = filteredPlans.filter(p => p.itemType === 'Rubber').reduce((s, p) => s + Number(p.targetQty), 0);
+            setText('boxTargetQtyText', formatNumber(boxTargetTotal));
+            setText('rubberTargetQtyText', formatNumber(rubberTargetTotal));
+
+            renderTopPlansCards(filteredPlans);
+            renderPlansTable(filteredPlans);
+            renderLogsTable();
+            renderDeletedLogsTable();
+            renderActiveTrackers();
+            populatePlanDropdowns();
+
+            if (state.currentTab === 'overview') renderCharts();
+        }
+
+        function renderActiveTrackers() {
+            renderAssemblyWipTracker();
+            renderPrTracker();
+        }
+
+        function renderAssemblyWipTracker() {
+            const todayStr = getTodayDateString();
+            const todayInGrid = document.getElementById('todayInPlansGrid');
+            const carryoverGrid = document.getElementById('carryoverPlansGrid');
+
+            if (!todayInGrid || !carryoverGrid) return;
+            todayInGrid.innerHTML = ''; carryoverGrid.innerHTML = '';
+
+            const todayInPlans = [];
+            const carryoverPlans = [];
+
+            state.plans.forEach(plan => {
+                const planLogs = state.logs.filter(l => l.planNo === plan.planNo);
+                const stats = getPlanStats(plan.planNo);
+
+                const todayInLogs = planLogs.filter(l => l.date === todayStr && l.type === 'IN');
+                const todayInQty = todayInLogs.reduce((s, l) => s + Number(l.qty), 0);
+
+                const pastInLogs = planLogs.filter(l => l.date < todayStr && l.type === 'IN');
+                const pastInQty = pastInLogs.reduce((s, l) => s + Number(l.qty), 0);
+
+                if (todayInQty > 0) {
+                    todayInPlans.push({ ...plan, ...stats, todayInQty, lastInDate: todayInLogs[todayInLogs.length - 1]?.date || todayStr });
+                }
+
+                if (pastInQty > 0 && stats.wipQty > 0 && todayInQty === 0) {
+                    const lastInLog = pastInLogs[pastInLogs.length - 1];
+                    carryoverPlans.push({ ...plan, ...stats, pastInQty, lastInDate: lastInLog?.date || 'Past' });
+                }
+            });
+
+            setText('todayInPlansCount', `${todayInPlans.length} Plans`);
+            const todayTotalIn = todayInPlans.reduce((s, p) => s + p.todayInQty, 0);
+            setText('todayInTotalQty', `${formatNumber(todayTotalIn)} items input today`);
+            setText('todayActiveBadge', `${todayInPlans.length} items`);
+
+            setText('carryoverPlansCount', `${carryoverPlans.length} Plans`);
+            const carryoverTotalWip = carryoverPlans.reduce((s, p) => s + p.wipQty, 0);
+            setText('carryoverTotalWip', `${formatNumber(carryoverTotalWip)} WIP items awaiting output`);
+            setText('carryoverActiveBadge', `${carryoverPlans.length} items`);
+
+            setText('activeWipCountBadge', todayInPlans.length + carryoverPlans.length);
+
+            if (todayInPlans.length === 0) {
+                todayInGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">No Assembly IN data recorded for today (${todayStr}) yet.</div>`;
+            } else {
+                todayInPlans.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl p-4 border-2 border-blue-500 shadow-sm space-y-3 relative overflow-hidden";
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between pt-1">
+                            <div>
+                                <span class="font-black text-slate-900 text-base">${p.planNo}</span>
+                                <div class="text-xs text-slate-500">Code: <strong class="text-slate-800">${p.code}</strong></div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${p.itemType === 'Rubber' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${p.itemType}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 text-center text-xs bg-blue-50/60 rounded-lg p-2 border border-blue-100">
+                            <div><span class="text-[10px] text-blue-600 font-bold block uppercase">Today IN</span><strong class="text-blue-800 font-extrabold text-sm">+${formatNumber(p.todayInQty)}</strong></div>
+                            <div><span class="text-[10px] text-emerald-600 font-medium block">OUT</span><strong class="text-emerald-800">${formatNumber(p.outputQty)}</strong></div>
+                            <div><span class="text-[10px] text-amber-700 font-bold block">Line WIP</span><strong class="text-amber-800">${formatNumber(p.wipQty)}</strong></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-1">
+                            <span class="text-slate-500 text-[11px]"><i class="fa-solid fa-clock text-blue-500 mr-1"></i>Date: ${p.lastInDate}</span>
+                            <div class="flex space-x-1">
+                                <button onclick="openSizeBreakdownModal('${p.planNo}')" class="px-2 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-[11px] font-bold transition">Sizes</button>
+                                <button onclick="quickOpenOutput('${p.planNo}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold transition shadow-xs">OUT</button>
+                                <button onclick="quickOpenPR('${p.planNo}')" class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold transition shadow-xs">PR</button>
+                            </div>
+                        </div>
+                    `;
+                    todayInGrid.appendChild(card);
+                });
+            }
+
+            if (carryoverPlans.length === 0) {
+                carryoverGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-xs bg-amber-50/50 rounded-xl border border-dashed border-amber-200">No pending carryover WIP from previous days.</div>`;
+            } else {
+                carryoverPlans.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-amber-50/40 rounded-xl p-4 border-2 border-amber-400 shadow-sm space-y-3 relative overflow-hidden";
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between pt-1">
+                            <div>
+                                <span class="font-black text-slate-900 text-base">${p.planNo}</span>
+                                <div class="text-xs text-slate-600">Code: <strong class="text-slate-800">${p.code}</strong></div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${p.itemType === 'Rubber' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${p.itemType}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 text-center text-xs bg-white rounded-lg p-2 border border-amber-200">
+                            <div><span class="text-[10px] text-blue-600 font-medium block">IN</span><strong class="text-blue-700">${formatNumber(p.inputQty)}</strong></div>
+                            <div><span class="text-[10px] text-emerald-600 font-medium block">OUT</span><strong class="text-emerald-700">${formatNumber(p.outputQty)}</strong></div>
+                            <div><span class="text-[10px] text-amber-700 font-black block uppercase">WIP</span><strong class="text-amber-700 font-black text-sm">${formatNumber(p.wipQty)}</strong></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-1">
+                            <span class="text-amber-800 text-[11px] font-semibold bg-amber-100 px-2 py-0.5 rounded">Last IN: ${p.lastInDate}</span>
+                            <div class="flex space-x-1">
+                                <button onclick="openSizeBreakdownModal('${p.planNo}')" class="px-2 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-[11px] font-bold transition">Sizes</button>
+                                <button onclick="quickOpenOutput('${p.planNo}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold transition">OUT</button>
+                                <button onclick="quickOpenPR('${p.planNo}')" class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold transition">PR</button>
+                            </div>
+                        </div>
+                    `;
+                    carryoverGrid.appendChild(card);
+                });
+            }
+        }
+
+        function renderPrTracker() {
+            const todayStr = getTodayDateString();
+            const todayPrGrid = document.getElementById('todayPrPlansGrid');
+            const carryoverPrGrid = document.getElementById('carryoverPrPlansGrid');
+
+            if (!todayPrGrid || !carryoverPrGrid) return;
+            todayPrGrid.innerHTML = ''; carryoverPrGrid.innerHTML = '';
+
+            const todayPrPlans = [];
+            const carryoverPrPlans = [];
+
+            state.plans.forEach(plan => {
+                const planLogs = state.logs.filter(l => l.planNo === plan.planNo);
+                const stats = getPlanStats(plan.planNo);
+
+                const todayOutLogs = planLogs.filter(l => l.date === todayStr && l.type === 'OUT');
+                const todayOutQty = todayOutLogs.reduce((s, l) => s + Number(l.qty), 0);
+
+                const pastOutLogs = planLogs.filter(l => l.date < todayStr && l.type === 'OUT');
+                const pastOutQty = pastOutLogs.reduce((s, l) => s + Number(l.qty), 0);
+
+                if (todayOutQty > 0 && stats.pendingPrQty > 0) {
+                    todayPrPlans.push({ ...plan, ...stats, todayOutQty, lastOutDate: todayOutLogs[todayOutLogs.length - 1]?.date || todayStr });
+                }
+
+                if (pastOutQty > 0 && stats.pendingPrQty > 0 && todayOutQty === 0) {
+                    const lastOutLog = pastOutLogs[pastOutLogs.length - 1];
+                    carryoverPrPlans.push({ ...plan, ...stats, pastOutQty, lastOutDate: lastOutLog?.date || 'Past' });
+                }
+            });
+
+            setText('todayPrPlansCount', `${todayPrPlans.length} Plans`);
+            const todayTotalOut = todayPrPlans.reduce((s, p) => s + p.todayOutQty, 0);
+            setText('todayPrTotalOut', `${formatNumber(todayTotalOut)} items output today`);
+            setText('todayPrActiveBadge', `${todayPrPlans.length} items`);
+
+            setText('carryoverPrPlansCount', `${carryoverPrPlans.length} Plans`);
+            const carryoverTotalPendingPr = carryoverPrPlans.reduce((s, p) => s + p.pendingPrQty, 0);
+            setText('carryoverPrTotalPending', `${formatNumber(carryoverTotalPendingPr)} FGW items pending receipt`);
+            setText('carryoverPrActiveBadge', `${carryoverPrPlans.length} items`);
+
+            setText('activePrCountBadge', todayPrPlans.length + carryoverPrPlans.length);
+
+            if (todayPrPlans.length === 0) {
+                todayPrGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">No Assembly OUT plans pending PR recorded for today (${todayStr}) yet.</div>`;
+            } else {
+                todayPrPlans.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl p-4 border-2 border-purple-500 shadow-sm space-y-3 relative overflow-hidden";
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between pt-1">
+                            <div>
+                                <span class="font-black text-slate-900 text-base">${p.planNo}</span>
+                                <div class="text-xs text-slate-500">Code: <strong class="text-slate-800">${p.code}</strong></div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${p.itemType === 'Rubber' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${p.itemType}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 text-center text-xs bg-purple-50/60 rounded-lg p-2 border border-purple-100">
+                            <div><span class="text-[10px] text-emerald-600 font-bold block uppercase">Assembly OUT</span><strong class="text-emerald-800 font-extrabold text-sm">${formatNumber(p.outputQty)}</strong></div>
+                            <div><span class="text-[10px] text-purple-600 font-bold block uppercase">PR Recd</span><strong class="text-purple-800 font-bold">${formatNumber(p.prQty)}</strong></div>
+                            <div><span class="text-[10px] text-purple-900 font-black block uppercase">Pending FGW</span><strong class="text-purple-900 font-black text-sm">${formatNumber(p.pendingPrQty)}</strong></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-1">
+                            <span class="text-slate-500 text-[11px]"><i class="fa-solid fa-clock text-purple-500 mr-1"></i>OUT Date: ${p.lastOutDate}</span>
+                            <div class="flex space-x-1">
+                                <button onclick="openSizeBreakdownModal('${p.planNo}')" class="px-2 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-[11px] font-bold transition">Sizes</button>
+                                <button onclick="quickOpenPR('${p.planNo}')" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold transition shadow-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-file-invoice text-[10px]"></i>
+                                    <span>+ PR Entry</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    todayPrGrid.appendChild(card);
+                });
+            }
+
+            if (carryoverPrPlans.length === 0) {
+                carryoverPrGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-xs bg-purple-50/50 rounded-xl border border-dashed border-purple-200">No carryover Assembly OUT plans awaiting PR handover.</div>`;
+            } else {
+                carryoverPrPlans.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-purple-50/30 rounded-xl p-4 border-2 border-purple-400 shadow-sm space-y-3 relative overflow-hidden";
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between pt-1">
+                            <div>
+                                <span class="font-black text-slate-900 text-base">${p.planNo}</span>
+                                <div class="text-xs text-slate-600">Code: <strong class="text-slate-800">${p.code}</strong></div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${p.itemType === 'Rubber' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${p.itemType}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 text-center text-xs bg-white rounded-lg p-2 border border-purple-200">
+                            <div><span class="text-[10px] text-emerald-600 font-medium block">Assembly OUT</span><strong class="text-emerald-700">${formatNumber(p.outputQty)}</strong></div>
+                            <div><span class="text-[10px] text-purple-600 font-medium block">PR Recd</span><strong class="text-purple-700">${formatNumber(p.prQty)}</strong></div>
+                            <div><span class="text-[10px] text-purple-900 font-black block uppercase">Pending FGW</span><strong class="text-purple-900 font-black text-sm">${formatNumber(p.pendingPrQty)}</strong></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-1">
+                            <span class="text-purple-900 text-[11px] font-semibold bg-purple-100 px-2 py-0.5 rounded">Last OUT: ${p.lastOutDate}</span>
+                            <div class="flex space-x-1">
+                                <button onclick="openSizeBreakdownModal('${p.planNo}')" class="px-2 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-[11px] font-bold transition">Sizes</button>
+                                <button onclick="quickOpenPR('${p.planNo}')" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold transition shadow-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-file-invoice text-[10px]"></i>
+                                    <span>+ PR Entry</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    carryoverPrGrid.appendChild(card);
+                });
+            }
+        }
+
+        function renderTopPlansCards(plans) {
+            const container = document.getElementById('topPlansCardsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const activePlans = [...plans].map(p => {
+                const stats = getPlanStats(p.planNo);
+                return { ...p, ...stats, pct: p.targetQty > 0 ? (stats.outputQty / p.targetQty) * 100 : 0 };
+            }).sort((a, b) => b.inputQty - a.inputQty).slice(0, 6);
+
+            if (activePlans.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-4 text-center">No matching plans found.</p>`;
+                return;
+            }
+
+            activePlans.forEach(p => {
+                const isRubber = p.itemType === 'Rubber';
+                const card = document.createElement('div');
+                card.className = "bg-slate-50/70 rounded-xl p-4 border border-slate-200/60 hover:bg-white hover:shadow-md transition space-y-3";
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-slate-900 text-sm">${p.planNo}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${isRubber ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${p.itemType}</span>
+                            </div>
+                            <span class="text-xs text-slate-500">Code: <strong>${p.code}</strong> (${p.type})</span>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded-md border border-slate-200">${p.month}</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 text-center text-xs bg-white rounded-lg p-2 border border-slate-100 shadow-2xs">
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-medium">Target</span>
+                            <div class="font-bold text-slate-800">${formatNumber(p.targetQty)}</div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-blue-500 font-medium">IN</span>
+                            <div class="font-bold text-blue-700">${formatNumber(p.inputQty)}</div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-emerald-500 font-medium">OUT</span>
+                            <div class="font-bold text-emerald-700">${formatNumber(p.outputQty)}</div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-purple-600 font-bold">PR</span>
+                            <div class="font-bold text-purple-800">${formatNumber(p.prQty)}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1 font-semibold">
+                            <span class="text-slate-500">Assembly Rate</span>
+                            <span class="text-slate-800">${p.pct.toFixed(1)}%</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden flex">
+                            <div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${Math.min(100, p.pct)}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function createSizeGridHTML(prefix) {
+            const grid = document.getElementById(`${prefix}SizeAssortmentGrid`);
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const isPr = prefix === 'pr';
+            const textColor = isPr ? 'text-purple-900' : 'text-slate-800';
+
+            SML_SIZES.forEach(sz => {
+                const cell = document.createElement('div');
+                cell.className = "flex flex-col items-center bg-white border border-slate-200 p-1 rounded-md shadow-2xs";
+                cell.innerHTML = `
+                    <span class="text-[10px] font-bold text-slate-500">Sz ${sz}</span>
+                    <input type="number" min="0" value="0" id="${prefix}Size_${sz}" oninput="syncSizesToTotal('${prefix}')" 
+                        class="w-full text-center text-xs font-bold ${textColor} border-t border-slate-100 pt-0.5 focus:outline-none focus:text-purple-600">
+                `;
+                grid.appendChild(cell);
+            });
+        }
+
+        function createRejectSizeGridHTML() {
+            const grid = document.getElementById('outRejectSizeAssortmentGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            SML_SIZES.forEach(sz => {
+                const cell = document.createElement('div');
+                cell.className = "flex flex-col items-center bg-white border border-rose-200 p-1 rounded-md shadow-2xs";
+                cell.innerHTML = `
+                    <span class="text-[10px] font-bold text-rose-600">Sz ${sz}</span>
+                    <input type="number" min="0" value="0" id="outRejectSize_${sz}" oninput="syncRejectSizesToTotal()" 
+                        class="w-full text-center text-xs font-bold text-rose-800 border-t border-rose-100 pt-0.5 focus:outline-none focus:text-rose-600">
+                `;
+                grid.appendChild(cell);
+            });
+        }
+
+        function syncRejectSizesToTotal() {
+            let total = 0;
+            SML_SIZES.forEach(sz => {
+                const val = Number(document.getElementById(`outRejectSize_${sz}`)?.value || 0);
+                total += val;
+            });
+            const rejectQtyInput = document.getElementById('outRejectQuantity');
+            if (rejectQtyInput && total >= 0) rejectQtyInput.value = total;
+        }
+
+        function distributeRejectsProportionally() {
+            const totalRejects = Number(document.getElementById('outRejectQuantity')?.value || 0);
+            if (!totalRejects || totalRejects <= 0) {
+                showToast("Please enter total defect quantity first.", "warning");
+                return;
+            }
+            const sizeObj = generateSizeBreakdown(totalRejects);
+            SML_SIZES.forEach(sz => {
+                const input = document.getElementById(`outRejectSize_${sz}`);
+                if (input) input.value = sizeObj[sz] || 0;
+            });
+            showToast(`Distributed ${totalRejects} rejects across Sizes 1 to 13.`, "info");
+        }
+
+        function syncSizesToTotal(prefix) {
+            let total = 0;
+            SML_SIZES.forEach(sz => {
+                const val = Number(document.getElementById(`${prefix}Size_${sz}`)?.value || 0);
+                total += val;
+            });
+            const mainQtyInput = document.getElementById(`${prefix}Quantity`);
+            if (mainQtyInput && total > 0) mainQtyInput.value = total;
+        }
+
+        function distributeProportionally(prefix) {
+            const totalQty = Number(document.getElementById(`${prefix}Quantity`)?.value || 0);
+            if (!totalQty || totalQty <= 0) {
+                showToast("Please enter total quantity first before distributing.", "warning");
+                return;
+            }
+            const sizeObj = generateSizeBreakdown(totalQty);
+            SML_SIZES.forEach(sz => {
+                const input = document.getElementById(`${prefix}Size_${sz}`);
+                if (input) input.value = sizeObj[sz] || 0;
+            });
+            showToast(`Distributed ${totalQty} items across Sizes 1 to 13.`, "info");
+        }
+
+        function openSizeBreakdownModal(planNo) {
+            const plan = state.plans.find(p => p.planNo === planNo);
+            if (!plan) return;
+
+            const stats = getPlanStats(planNo);
+            setText('sizeMatrixModalTitle', `Size Assortment Matrix - ${plan.planNo}`);
+            setText('sizeMatrixModalSubtitle', `Item Code: ${plan.code} | Category: ${plan.category} | Spec: ${plan.type} (${plan.itemType})`);
+
+            const summaryContainer = document.getElementById('sizeMatrixSummaryBar');
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-slate-500 font-bold block uppercase">Target</span>
+                        <strong class="text-sm text-slate-900">${formatNumber(plan.targetQty)}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-blue-600 font-bold block uppercase">Collecting IN</span>
+                        <strong class="text-sm text-blue-700">${formatNumber(stats.inputQty)}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-emerald-600 font-bold block uppercase">Assembly OUT</span>
+                        <strong class="text-sm text-emerald-700">${formatNumber(stats.outputQty)}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-purple-600 font-bold block uppercase">Receipt (PR)</span>
+                        <strong class="text-sm text-purple-700">${formatNumber(stats.prQty)}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-amber-600 font-bold block uppercase">Line WIP</span>
+                        <strong class="text-sm text-amber-700">${formatNumber(stats.wipQty)}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-200">
+                        <span class="text-[10px] text-rose-600 font-bold block uppercase">Rejects</span>
+                        <strong class="text-sm text-rose-700">${formatNumber(stats.rejectQty)}</strong>
+                    </div>
+                `;
+            }
+
+            const tbody = document.getElementById('sizeMatrixTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+
+                const rows = [
+                    { label: 'Planned Target', key: 'sizeTargets', bg: 'bg-slate-50', text: 'text-slate-800' },
+                    { label: 'Collecting Input (IN)', key: 'sizeInputs', bg: 'bg-blue-50/50', text: 'text-blue-700' },
+                    { label: 'Assembly Output (OUT)', key: 'sizeOutputs', bg: 'bg-emerald-50/50', text: 'text-emerald-700' },
+                    { label: 'Production Receipt (PR)', key: 'sizePrs', bg: 'bg-purple-50/50', text: 'text-purple-800 font-bold' },
+                    { label: 'Defects / Rejects', key: 'sizeRejects', bg: 'bg-rose-50/50', text: 'text-rose-700 font-bold' },
+                    { label: 'Line WIP Balance (IN-OUT)', key: 'sizeWips', bg: 'bg-amber-50/50', text: 'text-amber-700' },
+                    { label: 'Pending FGW (OUT-PR)', key: 'sizePendingPrs', bg: 'bg-violet-50/50', text: 'text-violet-800' }
+                ];
+
+                rows.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.className = `${r.bg} ${r.text}`;
+                    let cellsHTML = `<td class="py-2 px-3 text-left font-bold border-r border-slate-200">${r.label}</td>`;
+                    
+                    let rowSum = 0;
+                    SML_SIZES.forEach(sz => {
+                        const val = stats[r.key][sz] || 0;
+                        rowSum += val;
+                        cellsHTML += `<td class="py-2 px-1 border-r border-slate-200 font-semibold">${val}</td>`;
+                    });
+
+                    cellsHTML += `<td class="py-2 px-2 bg-slate-800 text-white font-black">${formatNumber(rowSum)}</td>`;
+                    tr.innerHTML = cellsHTML;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            openModal('sizeMatrixModal');
+        }
+
+        function renderPlansTable(plans) {
+            const tbody = document.getElementById('plansTableBody');
+            if (!tbody) return;
+            setText('planCountBadge', `${plans.length} items`);
+            tbody.innerHTML = '';
+
+            if (plans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-400 text-xs">No production plan items found matching current filters.</td></tr>`;
+                return;
+            }
+
+            plans.forEach(p => {
+                const stats = getPlanStats(p.planNo);
+                const pct = p.targetQty > 0 ? (stats.outputQty / p.targetQty) * 100 : 0;
+                const isRubber = p.itemType === 'Rubber';
+
+                let statusBadge = '';
+                if (stats.outputQty >= p.targetQty) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i>Complete</span>`;
+                } else if (stats.inputQty > 0) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200"><i class="fa-solid fa-spinner fa-spin mr-1"></i>In Assembly</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Pending</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition text-xs";
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-semibold">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isRubber ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
+                            ${p.itemType}
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 font-bold text-slate-900">${p.planNo}</td>
+                    <td class="py-3 px-3 font-semibold text-slate-700">${p.code}</td>
+                    <td class="py-3 px-3 text-slate-600">${p.category}</td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">${p.month}</span></td>
+                    <td class="py-3 px-3 text-right font-bold text-slate-800">${formatNumber(p.targetQty)}</td>
+                    <td class="py-3 px-3 text-right font-bold text-blue-700">${formatNumber(stats.inputQty)}</td>
+                    <td class="py-3 px-3 text-right font-bold text-emerald-700">${formatNumber(stats.outputQty)}</td>
+                    <td class="py-3 px-3 text-right font-bold text-purple-800">${formatNumber(stats.prQty)}</td>
+                    <td class="py-3 px-3 text-right font-bold text-amber-700">${formatNumber(stats.wipQty)}</td>
+                    <td class="py-3 px-3">
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span>${statusBadge}</span>
+                                <span class="font-bold text-slate-700">${pct.toFixed(0)}%</span>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                                <div class="h-full bg-emerald-500" style="width: ${Math.min(100, pct)}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="flex items-center justify-center space-x-1">
+                            <button onclick="openSizeBreakdownModal('${p.planNo}')" class="p-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white transition font-bold text-xs" title="View Size 1-13 Matrix">
+                                Sizes
+                            </button>
+                            <button onclick="quickOpenInput('${p.planNo}')" class="p-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition" title="Add Collecting Input (IN)">
+                                <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                            </button>
+                            <button onclick="quickOpenOutput('${p.planNo}')" class="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Add Assembly Output (OUT)">
+                                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                            </button>
+                            <button onclick="quickOpenPR('${p.planNo}')" class="p-1.5 rounded-md bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white transition" title="Add Production Receipt (PR)">
+                                <i class="fa-solid fa-file-invoice text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderLogsTable() {
+            const tbody = document.getElementById('logsTableBody');
+            const filterEl = document.getElementById('logTypeFilter');
+            if (!tbody || !filterEl) return;
+            const filterType = filterEl.value;
+            tbody.innerHTML = '';
+
+            const logsToDisplay = state.logs.filter(l => filterType === 'ALL' || l.type === filterType)
+                .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+            if (logsToDisplay.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-slate-400 text-xs">No production logs registered yet.</td></tr>`;
+                return;
+            }
+
+            logsToDisplay.forEach(log => {
+                const plan = state.plans.find(p => p.planNo === log.planNo) || { code: 'N/A', itemType: 'Box' };
+                let stageBadge = '';
+                if (log.type === 'IN') stageBadge = `<span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-blue-100 text-blue-800">Collecting (IN)</span>`;
+                else if (log.type === 'OUT') stageBadge = `<span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800">Assembly (OUT)</span>`;
+                else if (log.type === 'PR') stageBadge = `<span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-purple-100 text-purple-900 border border-purple-200">Receipt (PR)</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition text-xs";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-600">${log.date}</td>
+                    <td class="py-3 px-4">${stageBadge}</td>
+                    <td class="py-3 px-4 font-bold text-purple-900">${log.prDocNo ? `<span class="bg-purple-50 px-2 py-0.5 rounded border border-purple-200">${log.prDocNo}</span>` : '-'}</td>
+                    <td class="py-3 px-4 font-bold text-slate-900">${log.planNo}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-700">${plan.code}</td>
+                    <td class="py-3 px-4"><span class="text-[10px] font-bold px-2 py-0.5 rounded ${plan.itemType === 'Rubber' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}">${plan.itemType}</span></td>
+                    <td class="py-3 px-4 text-right font-bold ${log.type === 'IN' ? 'text-blue-700' : (log.type === 'OUT' ? 'text-emerald-700' : 'text-purple-900')}">${formatNumber(log.qty)}</td>
+                    <td class="py-3 px-4 text-right font-bold text-rose-600">${log.rejects ? formatNumber(log.rejects) : '-'}</td>
+                    <td class="py-3 px-4 text-slate-600">${log.operator || 'Standard Line'}</td>
+                    <td class="py-3 px-4 text-slate-500 italic max-w-[180px] truncate">${log.remarks || '-'}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="deleteLog(${log.id})" class="text-slate-400 hover:text-rose-600 transition p-1" title="Delete entry">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populatePlanDropdowns() {
+            const inSelect = document.getElementById('inPlanSelect');
+            const outSelect = document.getElementById('outPlanSelect');
+            const prSelect = document.getElementById('prPlanSelect');
+            if (!inSelect || !outSelect || !prSelect) return;
+
+            const prevInVal = inSelect.value;
+            const prevOutVal = outSelect.value;
+            const prevPrVal = prSelect.value;
+
+            inSelect.innerHTML = `<option value="">-- Choose Plan Number --</option>`;
+            outSelect.innerHTML = `<option value="">-- Choose Plan Number --</option>`;
+            prSelect.innerHTML = `<option value="">-- Choose Plan Number --</option>`;
+
+            state.plans.forEach(p => {
+                const optText = `${p.planNo} | Code: ${p.code} (${p.itemType} - Target: ${p.targetQty})`;
+                
+                const opt1 = document.createElement('option'); opt1.value = p.planNo; opt1.text = optText; inSelect.appendChild(opt1);
+                const opt2 = document.createElement('option'); opt2.value = p.planNo; opt2.text = optText; outSelect.appendChild(opt2);
+                const opt3 = document.createElement('option'); opt3.value = p.planNo; opt3.text = optText; prSelect.appendChild(opt3);
+            });
+
+            if (prevInVal) inSelect.value = prevInVal;
+            if (prevOutVal) outSelect.value = prevOutVal;
+            if (prevPrVal) prSelect.value = prevPrVal;
+        }
+
+        function updateInPlanPreview() {
+            const planNo = document.getElementById('inPlanSelect')?.value;
+            const previewCard = document.getElementById('inPlanPreview');
+            if (!previewCard) return;
+            if (!planNo) { previewCard.classList.add('hidden'); return; }
+
+            const plan = state.plans.find(p => p.planNo === planNo);
+            if (plan) {
+                const stats = getPlanStats(planNo);
+                setText('inPreviewItemCode', `Code: ${plan.code} (${plan.category})`);
+                setText('inPreviewType', plan.itemType.toUpperCase());
+                setText('inPreviewTarget', formatNumber(plan.targetQty));
+                setText('inPreviewCurrentInput', formatNumber(stats.inputQty));
+                previewCard.classList.remove('hidden');
+            }
+        }
+
+        function updateOutPlanPreview() {
+            const planNo = document.getElementById('outPlanSelect')?.value;
+            const previewCard = document.getElementById('outPlanPreview');
+            if (!previewCard) return;
+            if (!planNo) { previewCard.classList.add('hidden'); return; }
+
+            const plan = state.plans.find(p => p.planNo === planNo);
+            if (plan) {
+                const stats = getPlanStats(planNo);
+                setText('outPreviewItemCode', `Code: ${plan.code} (${plan.category})`);
+                setText('outPreviewType', plan.itemType.toUpperCase());
+                setText('outPreviewTarget', formatNumber(plan.targetQty));
+                setText('outPreviewInput', formatNumber(stats.inputQty));
+                setText('outPreviewWip', formatNumber(stats.wipQty));
+                previewCard.classList.remove('hidden');
+            }
+        }
+
+        function updatePrPlanPreview() {
+            const planNo = document.getElementById('prPlanSelect')?.value;
+            const previewCard = document.getElementById('prPlanPreview');
+            if (!previewCard) return;
+            if (!planNo) { previewCard.classList.add('hidden'); return; }
+
+            const plan = state.plans.find(p => p.planNo === planNo);
+            if (plan) {
+                const stats = getPlanStats(planNo);
+                setText('prPreviewItemCode', `Code: ${plan.code} (${plan.category})`);
+                setText('prPreviewType', plan.itemType.toUpperCase());
+                setText('prPreviewAssemblyOut', formatNumber(stats.outputQty));
+                setText('prPreviewTotalPr', formatNumber(stats.prQty));
+                setText('prPreviewPendingFgw', formatNumber(stats.pendingPrQty));
+                previewCard.classList.remove('hidden');
+            }
+        }
+
+        function quickOpenInput(planNo) {
+            openModal('collectingPointModal');
+            const sel = document.getElementById('inPlanSelect');
+            if (sel) { sel.value = planNo; updateInPlanPreview(); }
+        }
+
+        function quickOpenOutput(planNo) {
+            openModal('assemblyEndModal');
+            const sel = document.getElementById('outPlanSelect');
+            if (sel) { sel.value = planNo; updateOutPlanPreview(); }
+        }
+
+        function quickOpenPR(planNo) {
+            openModal('productionReceiptModal');
+            const sel = document.getElementById('prPlanSelect');
+            if (sel) { sel.value = planNo; updatePrPlanPreview(); }
+        }
+
+        async function handleCollectingPointSubmit(e) {
+            e.preventDefault();
+            const planNo = document.getElementById('inPlanSelect').value;
+            const date = document.getElementById('inEntryDate').value || getTodayDateString();
+            const qty = Number(document.getElementById('inQuantity').value);
+            const operator = document.getElementById('inOperator').value.trim();
+            const remarks = document.getElementById('inRemarks').value.trim();
+
+            if (!planNo || qty <= 0) {
+                showToast("Please select a plan and enter valid input quantity.", "warning");
+                return;
+            }
+
+            const sizes = {};
+            SML_SIZES.forEach(sz => { sizes[sz] = Number(document.getElementById(`inSize_${sz}`)?.value || 0); });
+            const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
+            const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+
+            state.logs.push({
+                id: Date.now(), date, type: 'IN', planNo, qty, sizes: finalSizes, rejects: 0, operator, remarks
+            });
+
+            await saveStore();
+            closeModal('collectingPointModal');
+            document.getElementById('collectingPointForm').reset();
+            lockDateField('inEntryDate');
+            document.getElementById('inEntryDate').value = getTodayDateString();
+            createSizeGridHTML('in');
+            refreshUI();
+            showToast(`Recorded Collecting Input (+${qty}) for Plan ${planNo}`, "success");
+        }
+
+        async function handleAssemblyEndSubmit(e) {
+            e.preventDefault();
+            const planNo = document.getElementById('outPlanSelect').value;
+            const date = document.getElementById('outEntryDate').value || getTodayDateString();
+            const qty = Number(document.getElementById('outQuantity').value);
+            const rejects = Number(document.getElementById('outRejectQuantity').value || 0);
+            const operator = document.getElementById('outOperator').value.trim();
+            const remarks = document.getElementById('outRemarks').value.trim();
+
+            if (!planNo || qty <= 0) {
+                showToast("Please select a plan and enter valid output quantity.", "warning");
+                return;
+            }
+
+            const stats = getPlanStats(planNo);
+            const submitOutput = async () => {
+                const sizes = {}; const rejectSizes = {};
+                SML_SIZES.forEach(sz => {
+                    sizes[sz] = Number(document.getElementById(`outSize_${sz}`)?.value || 0);
+                    rejectSizes[sz] = Number(document.getElementById(`outRejectSize_${sz}`)?.value || 0);
+                });
+
+                const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
+                const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+                const rejectSizesSum = Object.values(rejectSizes).reduce((a, b) => a + b, 0);
+                const finalRejectSizes = rejectSizesSum > 0 ? rejectSizes : (rejects > 0 ? generateSizeBreakdown(rejects) : rejectSizes);
+
+                state.logs.push({
+                    id: Date.now(), date, type: 'OUT', planNo, qty, sizes: finalSizes, rejects, rejectSizes: finalRejectSizes, operator, remarks
+                });
+
+                await saveStore();
+                closeModal('assemblyEndModal');
+                document.getElementById('assemblyEndForm').reset();
+                lockDateField('outEntryDate');
+                document.getElementById('outEntryDate').value = getTodayDateString();
+                createSizeGridHTML('out');
+                createRejectSizeGridHTML();
+                refreshUI();
+                showToast(`Recorded Assembly Output (+${qty}) for Plan ${planNo}`, "success");
+            };
+
+            if (qty > stats.wipQty) {
+                showConfirm("Exceeding WIP Balance Warning", `Assembly output (${qty}) exceeds current WIP balance (${stats.wipQty}). Continue?`, submitOutput);
+            } else {
+                await submitOutput();
+            }
+        }
+
+        async function handleProductionReceiptSubmit(e) {
+            e.preventDefault();
+            const planNo = document.getElementById('prPlanSelect').value;
+            const prDocNo = document.getElementById('prDocNo').value.trim().toUpperCase();
+            const date = document.getElementById('prEntryDate').value || getTodayDateString();
+            const qty = Number(document.getElementById('prQuantity').value);
+            const operator = document.getElementById('prOperator').value.trim();
+            const remarks = document.getElementById('prRemarks').value.trim();
+
+            if (!planNo || !prDocNo || qty <= 0) {
+                showToast("Please enter valid Plan No, PR Document No, and PR Quantity.", "warning");
+                return;
+            }
+
+            const stats = getPlanStats(planNo);
+            const submitPR = async () => {
+                const sizes = {};
+                SML_SIZES.forEach(sz => { sizes[sz] = Number(document.getElementById(`prSize_${sz}`)?.value || 0); });
+                const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
+                const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+
+                state.logs.push({
+                    id: Date.now(), date, type: 'PR', planNo, prDocNo, qty, sizes: finalSizes, operator, remarks
+                });
+
+                await saveStore();
+                closeModal('productionReceiptModal');
+                document.getElementById('productionReceiptForm').reset();
+                lockDateField('prEntryDate');
+                document.getElementById('prEntryDate').value = getTodayDateString();
+                createSizeGridHTML('pr');
+                refreshUI();
+                showToast(`Recorded Production Receipt (${prDocNo}: +${qty}) for Plan ${planNo}`, "success");
+            };
+
+            if (qty > stats.outputQty) {
+                showConfirm("Exceeding Assembly Output Warning", `PR quantity (${qty}) exceeds total Assembly OUT (${stats.outputQty}) for this plan. Do you want to proceed?`, submitPR);
+            } else {
+                await submitPR();
+            }
+        }
+
+        async function handleAddPlanSubmit(e) {
+            e.preventDefault();
+            const itemType = document.getElementById('newPlanItemType').value;
+            const month = document.getElementById('newPlanMonth').value;
+            const planNo = document.getElementById('newPlanNo').value.trim().toUpperCase();
+            const code = document.getElementById('newPlanCode').value.trim().toUpperCase();
+            const category = document.getElementById('newPlanCategory').value.trim().toUpperCase();
+            const type = document.getElementById('newPlanType').value.trim().toUpperCase();
+            const targetQty = Number(document.getElementById('newPlanTargetQty').value);
+
+            if (state.plans.some(p => p.planNo === planNo)) {
+                showToast(`Plan Number ${planNo} already exists!`, "warning");
+                return;
+            }
+
+            state.plans.push({ planNo, code, category, type, targetQty, month, itemType });
+            await saveStore();
+            closeModal('addPlanModal');
+            document.getElementById('addPlanForm').reset();
+            refreshUI();
+            showToast(`Successfully added plan item ${planNo}`, "success");
+        }
+
+        function deleteLog(logId) {
+            const logToDelete = state.logs.find(l => l.id === logId);
+            if (!logToDelete) return;
+
+            showConfirm(
+                "Delete Entry Mistake", 
+                `Are you sure you want to delete this ${logToDelete.type} entry for Plan ${logToDelete.planNo}? It will be archived in Deleted History.`, 
+                async () => {
+                    state.deletedLogs.push({ ...logToDelete, deletedAt: new Date().toLocaleString() });
+                    state.logs = state.logs.filter(l => l.id !== logId);
+                    await saveStore();
+                    refreshUI();
+                    showToast("Log entry moved to Deleted History tab.", "info");
+                }
+            );
+        }
+
+        function restoreLog(deletedLogId) {
+            const idx = state.deletedLogs.findIndex(l => l.id === deletedLogId);
+            if (idx === -1) return;
+
+            const entryToRestore = state.deletedLogs[idx];
+            showConfirm(
+                "Restore Deleted Entry",
+                `Restore this ${entryToRestore.type} entry (+${entryToRestore.qty} pcs for Plan ${entryToRestore.planNo}) back to Active Daily Logs?`,
+                async () => {
+                    const { deletedAt, ...restoredLog } = entryToRestore;
+                    state.logs.push(restoredLog);
+                    state.deletedLogs.splice(idx, 1);
+                    await saveStore();
+                    refreshUI();
+                    showToast(`Restored entry (+${restoredLog.qty}) for Plan ${restoredLog.planNo}`, "success");
+                }
+            );
+        }
+
+        function renderDeletedLogsTable() {
+            const tbody = document.getElementById('deletedLogsTableBody');
+            if (!tbody) return;
+
+            setText('deletedLogsCountBadge', state.deletedLogs.length);
+            setText('deletedLogsSummaryBadge', `${state.deletedLogs.length} deleted items`);
+            tbody.innerHTML = '';
+
+            if (state.deletedLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-400 text-xs">No deleted entries in history.</td></tr>`;
+                return;
+            }
+
+            [...state.deletedLogs].reverse().forEach(log => {
+                const plan = state.plans.find(p => p.planNo === log.planNo) || { code: 'N/A' };
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition text-xs bg-rose-50/20";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-rose-700 whitespace-nowrap">${log.deletedAt || 'N/A'}</td>
+                    <td class="py-3 px-4 font-medium text-slate-600 whitespace-nowrap">${log.date}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${log.type==='IN'?'bg-blue-100 text-blue-800':(log.type==='OUT'?'bg-emerald-100 text-emerald-800':'bg-purple-100 text-purple-900')}">${log.type}</span></td>
+                    <td class="py-3 px-4 font-bold text-purple-900">${log.prDocNo || '-'}</td>
+                    <td class="py-3 px-4 font-bold text-slate-900">${log.planNo}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-700">${plan.code}</td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-800">${formatNumber(log.qty)}</td>
+                    <td class="py-3 px-4 text-slate-600">${log.operator || 'Standard Line'}</td>
+                    <td class="py-3 px-4 text-slate-500 italic max-w-[160px] truncate">${log.remarks || '-'}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="restoreLog(${log.id})" class="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-bold rounded transition text-xs">Restore</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportSummaryCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Item Type,Plan Number,Item Code,Category,Spec Type,Sale Month,Target Qty,Input Qty (IN),Output Qty (OUT),PR Qty (FGW),Line WIP,Pending FGW,Completion %\n";
+
+            state.plans.forEach(p => {
+                const stats = getPlanStats(p.planNo);
+                const pct = p.targetQty > 0 ? ((stats.outputQty / p.targetQty) * 100).toFixed(1) : 0;
+                csvContent += `"${p.itemType}","${p.planNo}","${p.code}","${p.category}","${p.type}","${p.month}",${p.targetQty},${stats.inputQty},${stats.outputQty},${stats.prQty},${stats.wipQty},${stats.pendingPrQty},${pct}%\n`;
+            });
+
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `SML_Production_Plan_Summary_${getTodayDateString()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Production report downloaded successfully!", "success");
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgColors = { success: 'bg-emerald-800 text-white', warning: 'bg-amber-800 text-white', info: 'bg-slate-900 text-white' };
+            toast.className = `px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold transform transition-all duration-300 opacity-0 translate-y-2 ${bgColors[type] || bgColors.info}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3500);
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('hidden');
+                const todayStr = getTodayDateString();
+                if (id === 'collectingPointModal') { lockDateField('inEntryDate'); const el = document.getElementById('inEntryDate'); if (el) el.value = todayStr; }
+                else if (id === 'assemblyEndModal') { lockDateField('outEntryDate'); const el = document.getElementById('outEntryDate'); if (el) el.value = todayStr; }
+                else if (id === 'productionReceiptModal') { lockDateField('prEntryDate'); const el = document.getElementById('prEntryDate'); if (el) el.value = todayStr; }
+            }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            setText('confirmModalTitle', title);
+            setText('confirmModalMessage', message);
+            const actionBtn = document.getElementById('confirmModalActionBtn');
+            if (actionBtn) {
+                actionBtn.onclick = () => { closeModal('confirmModal'); onConfirm(); };
+            }
+            openModal('confirmModal');
+        }
+
+        /* Expose window scope methods */
+        window.handlePdfFileUpload = handlePdfFileUpload;
+        window.handleRawTextParse = handleRawTextParse;
+        window.confirmImportParsedPdfData = confirmImportParsedPdfData;
+        window.exportBackupJSON = exportBackupJSON;
+        window.triggerRestoreFileInput = triggerRestoreFileInput;
+        window.handleRestoreJSONFile = handleRestoreJSONFile;
+        window.handleResetDataWithPassword = handleResetDataWithPassword;
+        window.handleSaveSyncConfig = handleSaveSyncConfig;
+        window.handleClearSyncConfig = handleClearSyncConfig;
+        window.requestDateUnlock = requestDateUnlock;
+        window.handleConfirmDateUnlock = handleConfirmDateUnlock;
+        window.switchTab = switchTab;
+        window.setFilter = setFilter;
+        window.handleSearch = handleSearch;
+        window.exportSummaryCSV = exportSummaryCSV;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.updateInPlanPreview = updateInPlanPreview;
+        window.updateOutPlanPreview = updateOutPlanPreview;
+        window.updatePrPlanPreview = updatePrPlanPreview;
+        window.quickOpenInput = quickOpenInput;
+        window.quickOpenOutput = quickOpenOutput;
+        window.quickOpenPR = quickOpenPR;
+        window.handleCollectingPointSubmit = handleCollectingPointSubmit;
+        window.handleAssemblyEndSubmit = handleAssemblyEndSubmit;
+        window.handleProductionReceiptSubmit = handleProductionReceiptSubmit;
+        window.handleAddPlanSubmit = handleAddPlanSubmit;
+        window.deleteLog = deleteLog;
+        window.restoreLog = restoreLog;
+        window.openSizeBreakdownModal = openSizeBreakdownModal;
+        window.syncSizesToTotal = syncSizesToTotal;
+        window.syncRejectSizesToTotal = syncRejectSizesToTotal;
+        window.distributeProportionally = distributeProportionally;
+        window.distributeRejectsProportionally = distributeRejectsProportionally;
+
+        /* App Initialization */
+        window.addEventListener('DOMContentLoaded', () => {
+            initStore();
+            createSizeGridHTML('in');
+            createSizeGridHTML('out');
+            createSizeGridHTML('pr');
+            createRejectSizeGridHTML();
+            refreshUI();
+        });
+    </script>
+</body>
+</html>
