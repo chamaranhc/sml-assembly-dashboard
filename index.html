@@ -1186,6 +1186,40 @@
                 <p class="text-blue-700 text-[11px]">Updates synchronize automatically across all open tabs and windows on your local network domain. Paste Firebase config below for multi-device cloud sync.</p>
             </div>
 
+            <!-- Actionable Firestore Security Rules Helper -->
+            <details id="firestoreRulesDetails" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-2">
+                <summary class="font-bold text-slate-800 cursor-pointer flex items-center justify-between select-none">
+                    <span><i class="fa-solid fa-shield-halved text-indigo-600 mr-1.5"></i>Firestore Rules &amp; Permission Fix Guide</span>
+                    <span class="text-[10px] font-bold text-indigo-600">Click to expand</span>
+                </summary>
+                <div class="pt-2 space-y-2 border-t border-slate-200/80">
+                    <p id="firestoreRulesInstructions" class="text-[11px] text-slate-600 leading-relaxed">
+                        In Firebase Console (&rarr; <strong>Firestore Database &rarr; Rules</strong>), publish rules allowing access to path <code class="bg-slate-200/80 px-1 rounded text-slate-800" id="firestoreTargetPathText">artifacts/sml-dashboard/public/data/dashboard_state/current</code>:
+                    </p>
+                    <pre id="firestoreRulesCodeBlock" class="bg-slate-900 text-emerald-300 p-2.5 rounded-lg text-[10px] font-mono overflow-x-auto select-all leading-relaxed">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/data/dashboard_state/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="copyFirestoreRules(true)" class="bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <i class="fa-solid fa-copy"></i> Copy Auth Rules
+                            </button>
+                            <button type="button" onclick="copyFirestoreRules(false)" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="Use if Anonymous Sign-In is disabled in Firebase Authentication">
+                                <i class="fa-solid fa-copy"></i> Copy Open Rules
+                            </button>
+                        </div>
+                        <button type="button" onclick="retryCloudSync()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-rotate"></i> Retry Cloud Sync
+                        </button>
+                    </div>
+                </div>
+            </details>
+
             <p class="text-xs text-slate-600 leading-relaxed">
                 Paste your <strong>Firebase Web App Configuration</strong> code snippet below (copied directly from Firebase Console).
             </p>
@@ -1196,19 +1230,25 @@
                     <textarea id="firebaseConfigInput" rows="6" placeholder='Paste directly from Firebase Console, e.g.:
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "sml-db.firebaseapp.com",
-  projectId: "sml-db",
-  storageBucket: "sml-db.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyD-o5CfFNFWTjkWdqpbbEx3ZNN8R0G7mVE",
+  authDomain: "sml-prod-nov.firebaseapp.com",
+  projectId: "sml-prod-nov",
+  storageBucket: "sml-prod-nov.firebasestorage.app",
+  messagingSenderId: "588804621770",
+  appId: "1:588804621770:web:932e80429fadd1bcbf3b33",
+  measurementId: "G-DHT8C5LEEY"
 };' class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                 </div>
 
-                <div class="flex items-center justify-between pt-1">
-                    <button type="button" onclick="handleClearSyncConfig()" class="text-rose-600 hover:text-rose-800 text-xs font-bold underline">
-                        Disconnect / Reset Config
-                    </button>
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="handleUseDefaultSyncConfig()" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold underline">
+                            Use Default (sml-prod-nov)
+                        </button>
+                        <button type="button" onclick="handleClearSyncConfig()" class="text-rose-600 hover:text-rose-800 text-xs font-bold underline">
+                            Disconnect
+                        </button>
+                    </div>
                     <div class="flex space-x-2">
                         <button type="button" onclick="closeModal('syncSettingsModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">Cancel</button>
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md">Save & Connect</button>
@@ -1240,9 +1280,20 @@ const firebaseConfig = {
 
     <!-- Application JavaScript Logic -->
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp, getApps, getApp, deleteApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Built-in Firebase Configuration for SML Production Dashboard
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-o5CfFNFWTjkWdqpbbEx3ZNN8R0G7mVE",
+            authDomain: "sml-prod-nov.firebaseapp.com",
+            projectId: "sml-prod-nov",
+            storageBucket: "sml-prod-nov.firebasestorage.app",
+            messagingSenderId: "588804621770",
+            appId: "1:588804621770:web:932e80429fadd1bcbf3b33",
+            measurementId: "G-DHT8C5LEEY"
+        };
 
         // Initialize PDF.js worker URL
         if (window.pdfjsLib) {
@@ -1697,6 +1748,20 @@ const firebaseConfig = {
         let db = null;
         let auth = null;
         let currentUser = null;
+        let firestoreUnsubscribe = null;
+        let activeProjectId = firebaseConfig.projectId;
+        let cloudSyncReady = false;
+        let cloudWriteBlockedReason = null;
+        let lastAuthNotice = null;
+        let hasShownPermissionToast = false;
+
+        function getActiveAppId() {
+            return typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
+        }
+
+        function getFirestoreDocPath() {
+            return `artifacts/${getActiveAppId()}/public/data/dashboard_state/current`;
+        }
 
         function updateSyncBadge(isOnline, text, detailError = null) {
             const badge = document.getElementById('syncStatusBadge');
@@ -1704,22 +1769,52 @@ const firebaseConfig = {
             if (!badge || !txtEl) return;
             
             txtEl.innerText = text;
+            const dotEl = badge.querySelector('span');
             if (isOnline) {
                 badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 cursor-pointer hover:bg-emerald-100 transition";
-                badge.title = "Real-time sync active across devices. Click to manage settings.";
+                if (dotEl) dotEl.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                badge.title = `Real-time sync active (${activeProjectId}). Click to manage settings.`;
+            } else if (detailError) {
+                badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-amber-50 text-amber-800 border border-amber-300 cursor-pointer hover:bg-amber-100 transition";
+                if (dotEl) dotEl.className = "w-2 h-2 rounded-full bg-amber-500";
+                badge.title = `Cloud Sync Paused (${detailError}). Data saved locally. Click to fix.`;
             } else {
                 badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition";
-                badge.title = detailError ? `Sync Notice: ${detailError}. Click to view settings.` : "Local Network Sync Active. Click to add Cloud Firebase Sync.";
+                if (dotEl) dotEl.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
+                badge.title = "Local Network Sync Active. Click to view Cloud Firebase Sync settings.";
+            }
+
+            const targetPathEl = document.getElementById('firestoreTargetPathText');
+            if (targetPathEl) targetPathEl.innerText = getFirestoreDocPath();
+
+            const rulesCodeEl = document.getElementById('firestoreRulesCodeBlock');
+            const rulesInstrEl = document.getElementById('firestoreRulesInstructions');
+            const rulesDetailsEl = document.getElementById('firestoreRulesDetails');
+
+            if (rulesCodeEl) {
+                const useOpenRules = Boolean(lastAuthNotice && !currentUser);
+                rulesCodeEl.innerText = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /artifacts/{appId}/public/data/dashboard_state/{docId} {\n      allow read, write: if ${useOpenRules ? 'true' : 'request.auth != null'};\n    }\n  }\n}`;
+            }
+
+            if (rulesInstrEl && detailError) {
+                const authHint = lastAuthNotice
+                    ? `Anonymous Sign-In failed (<strong>${lastAuthNotice}</strong>). Enable <strong>Authentication &rarr; Sign-in method &rarr; Anonymous</strong> in Firebase Console or copy the Open Rules below.`
+                    : `Firebase rejected access to <code class="bg-slate-200/80 px-1 rounded text-slate-800">${getFirestoreDocPath()}</code>. Publish the rules below in <strong>Firestore Database &rarr; Rules</strong>, then click <strong>Retry Cloud Sync</strong>.`;
+                rulesInstrEl.innerHTML = authHint;
+            }
+
+            if (rulesDetailsEl && detailError) {
+                rulesDetailsEl.open = true;
             }
 
             const diagBox = document.getElementById('syncDiagnosticBox');
             if (diagBox) {
                 if (isOnline) {
                     diagBox.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs space-y-1";
-                    diagBox.innerHTML = `<div class="font-bold text-emerald-800 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Cloud Real-Time Database Connected</div><p class="text-emerald-700 text-[11px]">All transaction updates sync instantly across all connected devices and browsers in real time.</p>`;
+                    diagBox.innerHTML = `<div class="font-bold text-emerald-800 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Cloud Real-Time Database Connected (${activeProjectId})</div><p class="text-emerald-700 text-[11px]">All transaction updates sync instantly across all connected devices and browsers in real time.${currentUser ? ` (UID: ${currentUser.uid})` : ''}</p>`;
                 } else if (detailError) {
-                    diagBox.className = "bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs space-y-1.5";
-                    diagBox.innerHTML = `<div class="font-bold text-rose-800 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Cloud Sync Notice (${detailError})</div><div class="text-rose-700 text-[11px] leading-relaxed">Check Firebase Console settings or use Local Network Mode.</div>`;
+                    diagBox.className = "bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs space-y-1.5";
+                    diagBox.innerHTML = `<div class="font-bold text-amber-900 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Cloud Sync Blocked by Permissions (${detailError})</div><div class="text-amber-800 text-[11px] leading-relaxed">All changes are still safely saved locally in your browser &amp; across local tabs. Update your Firestore Security Rules for <strong>${activeProjectId}</strong> below and click <strong>Retry Cloud Sync</strong>.</div>`;
                 } else {
                     diagBox.className = "bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-1";
                     diagBox.innerHTML = `<div class="font-bold text-blue-800 flex items-center gap-1.5"><i class="fa-solid fa-network-wired text-blue-600"></i> Local Network Broadcast Active</div><p class="text-blue-700 text-[11px]">Updates synchronize automatically across all open tabs and windows on your local network domain.</p>`;
@@ -1747,56 +1842,110 @@ const firebaseConfig = {
             const storageBucket = extractKey('storageBucket');
             const messagingSenderId = extractKey('messagingSenderId');
             const appId = extractKey('appId');
+            const measurementId = extractKey('measurementId');
 
             if (apiKey && projectId) {
-                return { apiKey, authDomain: authDomain || `${projectId}.firebaseapp.com`, projectId, storageBucket: storageBucket || `${projectId}.appspot.com`, messagingSenderId: messagingSenderId || '', appId: appId || '' };
+                const cfg = {
+                    apiKey,
+                    authDomain: authDomain || `${projectId}.firebaseapp.com`,
+                    projectId,
+                    storageBucket: storageBucket || `${projectId}.firebasestorage.app`,
+                    messagingSenderId: messagingSenderId || '',
+                    appId: appId || ''
+                };
+                if (measurementId) cfg.measurementId = measurementId;
+                return cfg;
             }
             return null;
         }
 
         async function initFirebaseSync() {
-            let firebaseConfig = null;
-            const customConfigStr = localStorage.getItem('sml_custom_firebase_config');
-            if (customConfigStr) {
-                try { firebaseConfig = JSON.parse(customConfigStr); } catch(e) {}
-            }
-            if (!firebaseConfig && typeof __firebase_config !== 'undefined') {
-                try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
-            }
-            if (!firebaseConfig) {
+            cloudSyncReady = false;
+            cloudWriteBlockedReason = null;
+            lastAuthNotice = null;
+
+            if (localStorage.getItem('sml_firebase_sync_disabled') === 'true') {
                 updateSyncBadge(false, "Local Network Sync Active");
                 return;
             }
 
-            try {
-                let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-                auth = getAuth(app);
-                db = getFirestore(app);
+            let activeFirebaseConfig = null;
+            let usingInjectedEnvConfig = false;
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+            const customConfigStr = localStorage.getItem('sml_custom_firebase_config_v2');
+            if (customConfigStr) {
+                try { activeFirebaseConfig = JSON.parse(customConfigStr); } catch(e) {}
+            }
+            if (!activeFirebaseConfig && firebaseConfig && firebaseConfig.apiKey) {
+                activeFirebaseConfig = firebaseConfig;
+            }
+            if (!activeFirebaseConfig && typeof __firebase_config !== 'undefined') {
+                try {
+                    activeFirebaseConfig = JSON.parse(__firebase_config);
+                    usingInjectedEnvConfig = true;
+                } catch(e) {}
+            }
+            if (!activeFirebaseConfig) {
+                updateSyncBadge(false, "Local Network Sync Active");
+                return;
+            }
+
+            activeProjectId = activeFirebaseConfig.projectId || 'Firebase';
+
+            try {
+                if (firestoreUnsubscribe) {
+                    firestoreUnsubscribe();
+                    firestoreUnsubscribe = null;
+                }
+
+                let app;
+                if (getApps().length === 0) {
+                    app = initializeApp(activeFirebaseConfig);
                 } else {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (authErr) {
-                        updateSyncBadge(false, `Sync Error: ${authErr.code || 'Auth Failed'}`);
-                        return;
+                    const existingApp = getApp();
+                    if (
+                        existingApp.options.apiKey !== activeFirebaseConfig.apiKey ||
+                        existingApp.options.projectId !== activeFirebaseConfig.projectId
+                    ) {
+                        await deleteApp(existingApp);
+                        app = initializeApp(activeFirebaseConfig);
+                    } else {
+                        app = existingApp;
                     }
                 }
 
-                currentUser = auth.currentUser;
-                if (currentUser) setupRealtimeListener();
+                auth = getAuth(app);
+
+                // Complete authentication BEFORE enabling Firestore reads/writes
+                try {
+                    if (usingInjectedEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    currentUser = auth.currentUser;
+                } catch (authErr) {
+                    console.warn("Firebase Auth notice:", authErr);
+                    currentUser = null;
+                    lastAuthNotice = authErr.code || authErr.message;
+                }
+
+                db = getFirestore(app);
+                cloudSyncReady = true;
+                setupRealtimeListener(lastAuthNotice);
             } catch (err) {
+                cloudSyncReady = false;
                 updateSyncBadge(false, "Sync Error", err.code || err.message);
             }
         }
 
-        function setupRealtimeListener() {
-            if (!db || !currentUser) return;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
+        function setupRealtimeListener(authNotice = null) {
+            if (!db || !cloudSyncReady) return;
+            const appId = getActiveAppId();
             const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
 
-            onSnapshot(stateDocRef, (docSnap) => {
+            firestoreUnsubscribe = onSnapshot(stateDocRef, (docSnap) => {
+                cloudWriteBlockedReason = null;
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.plans) state.plans = mergeMissingInitialPlans(data.plans).plans;
@@ -1808,12 +1957,27 @@ const firebaseConfig = {
                     localStorage.setItem('sml_deleted_logs_v4', JSON.stringify(state.deletedLogs));
 
                     refreshUI();
+                    updateSyncBadge(true, "Cloud Real-Time Sync Active");
                 } else {
-                    saveStore(true);
+                    updateSyncBadge(true, "Cloud Real-Time Sync Active");
+                    if (!cloudWriteBlockedReason) {
+                        saveStore(true);
+                    }
                 }
-                updateSyncBadge(true, "Cloud Real-Time Sync Active");
             }, (error) => {
-                updateSyncBadge(false, `Sync Notice: ${error.code || 'Firestore'}`, error.code || error.message);
+                const errCode = error.code || error.message || 'permission-denied';
+                const isPermissionErr = errCode === 'permission-denied' || String(error.message).toLowerCase().includes('permission');
+                if (isPermissionErr) {
+                    cloudWriteBlockedReason = errCode;
+                    if (firestoreUnsubscribe) {
+                        firestoreUnsubscribe();
+                        firestoreUnsubscribe = null;
+                    }
+                }
+                const detail = authNotice
+                    ? `${errCode} (Auth: ${authNotice})`
+                    : errCode;
+                updateSyncBadge(false, isPermissionErr ? "Local Sync (Cloud Permission Needed)" : `Sync Notice: ${errCode}`, detail);
             });
         }
 
@@ -1860,19 +2024,42 @@ const firebaseConfig = {
                 });
             }
 
-            if (db && currentUser) {
+            if (db && cloudSyncReady && !cloudWriteBlockedReason) {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
+                    const appId = getActiveAppId();
                     const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
-                    await setDoc(stateDocRef, {
+                    // Strip any undefined fields before sending payload to Firestore
+                    const cleanPayload = JSON.parse(JSON.stringify({
                         plans: state.plans,
                         logs: state.logs,
                         deletedLogs: state.deletedLogs,
                         updatedAt: new Date().toISOString(),
-                        updatedBy: currentUser.uid
-                    }, { merge: true });
+                        updatedBy: currentUser ? currentUser.uid : 'client'
+                    }));
+                    await setDoc(stateDocRef, cleanPayload, { merge: true });
+                    updateSyncBadge(true, "Cloud Real-Time Sync Active");
                 } catch (e) {
-                    console.error("Firestore write error:", e);
+                    const errCode = e.code || e.message || 'unknown-error';
+                    const isPermissionErr = errCode === 'permission-denied' || String(e.message).toLowerCase().includes('permission');
+
+                    if (isPermissionErr) {
+                        cloudWriteBlockedReason = errCode;
+                        if (firestoreUnsubscribe) {
+                            firestoreUnsubscribe();
+                            firestoreUnsubscribe = null;
+                        }
+                        const detail = lastAuthNotice
+                            ? `${errCode} (Auth: ${lastAuthNotice})`
+                            : errCode;
+                        updateSyncBadge(false, "Local Sync (Cloud Permission Needed)", detail);
+                        console.warn("Firestore cloud write paused due to missing permissions. Data saved locally.", e.message);
+                        if (!hasShownPermissionToast) {
+                            hasShownPermissionToast = true;
+                            showToast("Cloud permission needed — changes saved locally. Click Sync badge to view Firestore rules fix.", "warning");
+                        }
+                    } else {
+                        console.warn("Firestore write deferred (data saved locally):", e.message || e);
+                    }
                 }
             }
         }
@@ -2581,18 +2768,77 @@ const firebaseConfig = {
                 showToast("Invalid Firebase config snippet!", "warning");
                 return;
             }
-            localStorage.setItem('sml_custom_firebase_config', JSON.stringify(parsedConfig));
+            localStorage.removeItem('sml_firebase_sync_disabled');
+            localStorage.setItem('sml_custom_firebase_config_v2', JSON.stringify(parsedConfig));
+            cloudWriteBlockedReason = null;
+            cloudSyncReady = false;
+            hasShownPermissionToast = false;
             showToast("Saved Firebase Configuration. Connecting...", "info");
             closeModal('syncSettingsModal');
             initFirebaseSync();
         }
 
+        function handleUseDefaultSyncConfig() {
+            localStorage.removeItem('sml_firebase_sync_disabled');
+            localStorage.removeItem('sml_custom_firebase_config_v2');
+            cloudWriteBlockedReason = null;
+            cloudSyncReady = false;
+            hasShownPermissionToast = false;
+            const cfgInput = document.getElementById('firebaseConfigInput');
+            if (cfgInput) cfgInput.value = `const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};`;
+            showToast(`Switched to built-in Firebase config (${firebaseConfig.projectId}). Connecting...`, "info");
+            closeModal('syncSettingsModal');
+            initFirebaseSync();
+        }
+
         function handleClearSyncConfig() {
-            localStorage.removeItem('sml_custom_firebase_config');
+            localStorage.removeItem('sml_custom_firebase_config_v2');
+            localStorage.setItem('sml_firebase_sync_disabled', 'true');
+            if (firestoreUnsubscribe) {
+                firestoreUnsubscribe();
+                firestoreUnsubscribe = null;
+            }
             db = null; auth = null; currentUser = null;
+            cloudSyncReady = false;
+            cloudWriteBlockedReason = null;
+            lastAuthNotice = null;
+            hasShownPermissionToast = false;
+            activeProjectId = firebaseConfig.projectId;
             updateSyncBadge(false, "Local Network Sync Active");
             showToast("Disconnected cloud database. Reverted to Local Network mode.", "info");
             closeModal('syncSettingsModal');
+        }
+
+        function retryCloudSync() {
+            localStorage.removeItem('sml_firebase_sync_disabled');
+            cloudWriteBlockedReason = null;
+            cloudSyncReady = false;
+            hasShownPermissionToast = false;
+            showToast(`Retrying Cloud Firestore sync (${activeProjectId})...`, "info");
+            initFirebaseSync();
+        }
+
+        function copyFirestoreRules(requireAuth = true) {
+            const ruleCondition = requireAuth ? 'request.auth != null' : 'true';
+            const rulesText = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /artifacts/{appId}/public/data/dashboard_state/{docId} {\n      allow read, write: if ${ruleCondition};\n    }\n  }\n}`;
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = rulesText;
+            tempTextarea.style.position = 'fixed';
+            tempTextarea.style.opacity = '0';
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            try {
+                const copied = document.execCommand('copy');
+                if (copied) {
+                    showToast("Firestore Security Rules copied to clipboard!", "success");
+                } else {
+                    showToast("Could not auto-copy. Please copy the rules from the box manually.", "warning");
+                }
+            } catch (err) {
+                showToast("Could not auto-copy. Please copy the rules from the box manually.", "warning");
+            } finally {
+                document.body.removeChild(tempTextarea);
+            }
         }
 
         function exportBackupJSON() {
@@ -3980,6 +4226,17 @@ const firebaseConfig = {
                 if (id === 'collectingPointModal') { lockDateField('inEntryDate'); const el = document.getElementById('inEntryDate'); if (el) el.value = todayStr; }
                 else if (id === 'assemblyEndModal') { lockDateField('outEntryDate'); const el = document.getElementById('outEntryDate'); if (el) el.value = todayStr; }
                 else if (id === 'productionReceiptModal') { lockDateField('prEntryDate'); const el = document.getElementById('prEntryDate'); if (el) el.value = todayStr; }
+                else if (id === 'syncSettingsModal') {
+                    const cfgInput = document.getElementById('firebaseConfigInput');
+                    if (cfgInput && !cfgInput.value.trim()) {
+                        const activeCfgStr = localStorage.getItem('sml_custom_firebase_config_v2');
+                        let activeCfg = firebaseConfig;
+                        if (activeCfgStr) {
+                            try { activeCfg = JSON.parse(activeCfgStr); } catch(e) {}
+                        }
+                        cfgInput.value = `const firebaseConfig = ${JSON.stringify(activeCfg, null, 2)};`;
+                    }
+                }
             }
         }
 
@@ -4012,7 +4269,10 @@ const firebaseConfig = {
         window.handleRestoreJSONFile = handleRestoreJSONFile;
         window.handleResetDataWithPassword = handleResetDataWithPassword;
         window.handleSaveSyncConfig = handleSaveSyncConfig;
+        window.handleUseDefaultSyncConfig = handleUseDefaultSyncConfig;
         window.handleClearSyncConfig = handleClearSyncConfig;
+        window.retryCloudSync = retryCloudSync;
+        window.copyFirestoreRules = copyFirestoreRules;
         window.requestDateUnlock = requestDateUnlock;
         window.handleConfirmDateUnlock = handleConfirmDateUnlock;
         window.switchTab = switchTab;
