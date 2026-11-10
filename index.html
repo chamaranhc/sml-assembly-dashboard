@@ -16,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- PDF.js for Browser-Based PDF Report Parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- SheetJS (xlsx) for Browser-Based Excel Parsing & Template Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -55,38 +57,44 @@
                 <div class="flex items-center space-x-2">
                     <div id="syncStatusBadge" onclick="openModal('syncSettingsModal')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition" title="Click to view real-time sync settings">
                         <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                        <span id="syncStatusText">Local Network Sync Active</span>
+                        <span id="syncStatusText" class="hidden sm:inline">Local Network Sync Active</span>
                     </div>
+
+                    <!-- Excel Next Month Plan Upload Button -->
+                    <button onclick="openModal('excelUploadModal')" class="bg-teal-600 hover:bg-teal-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Upload Excel Plan for Next Month">
+                        <i class="fa-solid fa-file-excel text-xs"></i>
+                        <span class="hidden md:inline">Upload Plan Excel</span>
+                    </button>
 
                     <!-- PDF Report Auto-Import Button -->
                     <button onclick="openModal('pdfUploadModal')" class="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Import Hourly System Scan PDF Report">
                         <i class="fa-solid fa-file-pdf text-xs"></i>
-                        <span class="hidden md:inline">Import Hourly PDF Scan</span>
+                        <span class="hidden lg:inline">Import Hourly PDF Scan</span>
                     </button>
 
                     <button onclick="exportBackupJSON()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Export Full Database Backup (.json)">
                         <i class="fa-solid fa-download text-xs"></i>
-                        <span class="hidden lg:inline">Backup</span>
+                        <span class="hidden xl:inline">Backup</span>
                     </button>
                     <button onclick="triggerRestoreFileInput()" class="bg-violet-600 hover:bg-violet-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Restore Database from JSON Backup File">
                         <i class="fa-solid fa-upload text-xs"></i>
-                        <span class="hidden lg:inline">Restore</span>
+                        <span class="hidden xl:inline">Restore</span>
                     </button>
                     <button onclick="openModal('syncSettingsModal')" class="bg-slate-700 hover:bg-slate-800 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Configure Cloud / Server Real-Time Sync">
                         <i class="fa-solid fa-cloud text-xs"></i>
-                        <span class="hidden lg:inline">Sync Settings</span>
+                        <span class="hidden 2xl:inline">Sync Settings</span>
                     </button>
                     <input type="file" id="backupFileInput" accept=".json" onchange="handleRestoreJSONFile(event)" class="hidden">
 
-                    <button onclick="openModal('collectingPointModal')" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                    <button onclick="openModal('collectingPointModal')" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Collecting Point (IN)">
                         <i class="fa-solid fa-right-to-bracket text-xs"></i>
                         <span class="hidden xl:inline">Collecting (IN)</span>
                     </button>
-                    <button onclick="openModal('assemblyEndModal')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                    <button onclick="openModal('assemblyEndModal')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Assembly End (OUT)">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
                         <span class="hidden xl:inline">Assembly (OUT)</span>
                     </button>
-                    <button onclick="openModal('productionReceiptModal')" class="bg-purple-600 hover:bg-purple-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                    <button onclick="openModal('productionReceiptModal')" class="bg-purple-600 hover:bg-purple-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5" title="Production Receipt (PR)">
                         <i class="fa-solid fa-file-invoice text-xs"></i>
                         <span class="hidden xl:inline">Receipt (PR)</span>
                     </button>
@@ -152,15 +160,13 @@
                     <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-2">Category:</span>
                     <button id="filter-type-ALL" onclick="setFilter('type', 'ALL')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition bg-slate-800 text-white shadow-2xs">All Items</button>
                     <button id="filter-type-Box" onclick="setFilter('type', 'Box')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:bg-slate-100">Box Items</button>
-                    <button id="filter-type-Rubber" onclick="setFilter('type', 'Rubber')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:bg-slate-100">Rubber (GF)</button>
+                    <button id="filter-type-Rubber" onclick="setFilter('type', 'Rubber')" class="filter-type-btn px-3 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:bg-slate-100">Rubber (GF/OI)</button>
                 </div>
 
                 <!-- Month Filter & Search Bar -->
                 <div class="flex items-center space-x-3">
                     <select id="monthFilterSelect" onchange="setFilter('month', this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="ALL">All Sale Months</option>
-                        <option value="OCT">OCT Month</option>
-                        <option value="NOV">NOV Month</option>
                     </select>
 
                     <div class="relative flex-1 sm:w-64">
@@ -278,7 +284,7 @@
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4 flex flex-col justify-between">
                     <div>
                         <h3 class="font-extrabold text-slate-900 text-sm">Production Category Share</h3>
-                        <p class="text-xs text-slate-500">Box vs Rubber (GF) Finished Volume</p>
+                        <p class="text-xs text-slate-500">Box vs Rubber (GF/OI) Finished Volume</p>
                     </div>
                     <div class="h-48 relative my-2">
                         <canvas id="itemTypeChart"></canvas>
@@ -392,9 +398,28 @@
         <!-- TAB 3: MASTER PRODUCTION PLANS -->
         <div id="tabView-plans" class="tab-view space-y-4 hidden">
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                <div class="p-4 border-b border-slate-200/80 flex items-center justify-between">
-                    <h3 class="font-extrabold text-slate-900 text-sm">SML Master Production Target Plans</h3>
-                    <span class="text-xs text-slate-500">Size Assortment Range: Sizes 1 to 13</span>
+                <div class="p-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm">SML Master Production Target Plans</h3>
+                        <span class="text-xs text-slate-500">Size Assortment Range: Sizes 1 to 13</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="plansTabMonthFilter" onchange="setFilter('month', this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ALL">All Sale Months</option>
+                        </select>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-[11px]"></i>
+                            <input type="text" id="plansTabSearchInput" oninput="syncPlansSearch(this.value)" placeholder="Filter Plan / Code..." class="bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-2.5 py-1.5 text-xs font-semibold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44">
+                        </div>
+                        <button onclick="openModal('excelUploadModal')" class="bg-teal-600 hover:bg-teal-700 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>Upload Next Month Excel</span>
+                        </button>
+                        <button onclick="openModal('addPlanModal')" class="bg-slate-800 hover:bg-slate-900 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Plan</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-collapse">
@@ -497,6 +522,143 @@
 
     </main>
 
+    <!-- MODAL 0A: Next Month Production Plan Excel Upload Modal -->
+    <div id="excelUploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-5 border border-teal-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2.5 text-teal-600">
+                    <div class="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center">
+                        <i class="fa-solid fa-file-excel text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base">Upload Next Month Production Plan (Excel)</h3>
+                        <p class="text-xs text-slate-500">Supports <code class="bg-slate-100 text-teal-700 px-1 rounded">.xlsx</code>, <code class="bg-slate-100 text-teal-700 px-1 rounded">.xls</code>, and <code class="bg-slate-100 text-teal-700 px-1 rounded">.csv</code>. Duplicate plan numbers are automatically neglected.</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('excelUploadModal')" class="text-slate-400 hover:text-slate-600 transition p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Upload Configuration Controls -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                <div>
+                    <label class="block text-[11px] font-extrabold text-slate-700 mb-1">Target Sale Month Mode</label>
+                    <select id="excelDefaultMonth" onchange="reparseSelectedExcelSheet()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <option value="AUTO">Auto-detect (from Excel / Plan No)</option>
+                        <option value="JAN">Force Month: JAN</option>
+                        <option value="FEB">Force Month: FEB</option>
+                        <option value="MAR">Force Month: MAR</option>
+                        <option value="APR">Force Month: APR</option>
+                        <option value="MAY">Force Month: MAY</option>
+                        <option value="JUN">Force Month: JUN</option>
+                        <option value="JUL">Force Month: JUL</option>
+                        <option value="AUG">Force Month: AUG</option>
+                        <option value="SEP">Force Month: SEP</option>
+                        <option value="OCT">Force Month: OCT</option>
+                        <option value="NOV">Force Month: NOV</option>
+                        <option value="DEC">Force Month: DEC</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-extrabold text-slate-700 mb-1">Item Category Detection</label>
+                    <select id="excelDefaultItemType" onchange="reparseSelectedExcelSheet()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <option value="AUTO">Auto-detect (Box / Rubber)</option>
+                        <option value="Box">Force All as Box Items</option>
+                        <option value="Rubber">Force All as Rubber Items (GF/OI)</option>
+                    </select>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button type="button" onclick="downloadSampleExcelTemplate()" class="w-full bg-white hover:bg-teal-50 text-teal-700 border border-teal-300 rounded-xl px-3 py-2 text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Sample Excel Template</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drag & Drop / File Selection Zone -->
+            <div id="excelDropZone" onclick="document.getElementById('excelFileInput').click()" class="border-2 border-dashed border-teal-200 hover:border-teal-400 bg-teal-50/30 hover:bg-teal-50/60 rounded-2xl p-6 text-center cursor-pointer transition space-y-2">
+                <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                </div>
+                <div>
+                    <span id="excelDropZoneLabel" class="text-xs font-bold text-slate-800 block">Click to browse or drag & drop Next Month Excel file here</span>
+                    <span class="text-[11px] text-slate-500">Recognizes SML Box & Rubber sheets (with Sizes 01–13, Order Qty / Deli.Qty, Plan Number, Item Code)</span>
+                </div>
+                <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" onchange="handleExcelFileUpload(event)" class="hidden">
+            </div>
+
+            <!-- Excel Parse Preview & Duplicate Neglection Report -->
+            <div id="excelParsePreviewContainer" class="hidden space-y-3 border-t border-slate-100 pt-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-extrabold text-slate-700">Worksheet:</span>
+                        <select id="excelSheetSelect" onchange="reparseSelectedExcelSheet()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" onclick="setExcelPreviewFilter('ALL')" id="excelFilterBtn-ALL" class="excel-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-white">All Parsed</button>
+                        <button type="button" onclick="setExcelPreviewFilter('NEW')" id="excelFilterBtn-NEW" class="excel-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">New Only</button>
+                        <button type="button" onclick="setExcelPreviewFilter('DUP')" id="excelFilterBtn-DUP" class="excel-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Neglected Duplicates</button>
+                    </div>
+                </div>
+
+                <!-- Summary Stat Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase block">Total Rows Found</span>
+                        <strong id="excelStatTotal" class="text-sm font-black text-slate-900">0</strong>
+                    </div>
+                    <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                        <span class="text-[10px] text-emerald-700 font-bold uppercase block">New Plans to Add</span>
+                        <strong id="excelStatNew" class="text-sm font-black text-emerald-800">0</strong>
+                    </div>
+                    <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                        <span class="text-[10px] text-amber-700 font-bold uppercase block">Existing Duplicates (Neglected)</span>
+                        <strong id="excelStatDupExisting" class="text-sm font-black text-amber-800">0</strong>
+                    </div>
+                    <div class="bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                        <span class="text-[10px] text-rose-700 font-bold uppercase block">In-File Duplicates (Neglected)</span>
+                        <strong id="excelStatDupFile" class="text-sm font-black text-rose-800">0</strong>
+                    </div>
+                </div>
+
+                <!-- Parsed Table Preview -->
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl max-h-64">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-slate-100 text-[10px] font-extrabold text-slate-600 uppercase border-b border-slate-200">
+                                <th class="p-2">Import Status</th>
+                                <th class="p-2">Plan Number</th>
+                                <th class="p-2">Item Code</th>
+                                <th class="p-2">Category</th>
+                                <th class="p-2">Month</th>
+                                <th class="p-2 text-right">Target Qty</th>
+                                <th class="p-2">Sizes 1–13 Breakdown</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excelParsedTableBody" class="divide-y divide-slate-100">
+                            <!-- Preview rows rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
+                    <span class="text-[11px] text-slate-500 italic">
+                        <i class="fa-solid fa-shield-halved text-teal-600 mr-1"></i>
+                        Duplicated plan numbers are strictly neglected and will not overwrite existing plans.
+                    </span>
+                    <div class="flex items-center gap-2 justify-end">
+                        <button type="button" onclick="closeModal('excelUploadModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-xl transition">Cancel</button>
+                        <button type="button" id="confirmExcelImportBtn" onclick="confirmImportExcelPlans()" class="bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-check"></i>
+                            <span id="confirmExcelImportBtnText">Import New Plans</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 0: Hourly PDF Scan Auto-Import Modal -->
     <div id="pdfUploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 border border-rose-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -575,7 +737,7 @@
 
     <!-- MODAL 1: Collecting Point (IN) Entry -->
     <div id="collectingPointModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-slate-100 relative">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-slate-100 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center space-x-2 text-blue-600">
                     <i class="fa-solid fa-right-to-bracket text-lg"></i>
@@ -903,21 +1065,31 @@
                         <label class="block text-xs font-extrabold text-slate-700 mb-1">Item Category *</label>
                         <select id="newPlanItemType" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
                             <option value="Box">Box Item</option>
-                            <option value="Rubber">Rubber Item (GF)</option>
+                            <option value="Rubber">Rubber Item (GF/OI)</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 mb-1">Sale Month *</label>
                         <select id="newPlanMonth" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                            <option value="JAN">JAN</option>
+                            <option value="FEB">FEB</option>
+                            <option value="MAR">MAR</option>
+                            <option value="APR">APR</option>
+                            <option value="MAY">MAY</option>
+                            <option value="JUN">JUN</option>
+                            <option value="JUL">JUL</option>
+                            <option value="AUG">AUG</option>
+                            <option value="SEP">SEP</option>
                             <option value="OCT">OCT</option>
                             <option value="NOV">NOV</option>
+                            <option value="DEC" selected>DEC</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-extrabold text-slate-700 mb-1">Plan Number *</label>
-                    <input type="text" id="newPlanNo" required placeholder="e.g. 26-10-999GG" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
+                    <input type="text" id="newPlanNo" required placeholder="e.g. 25-12-999GG" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none uppercase">
                 </div>
 
                 <div class="grid grid-cols-3 gap-2">
@@ -1078,6 +1250,7 @@ const firebaseConfig = {
         }
 
         const SML_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        const MONTH_ORDER = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
         function getTodayDateString() {
             const today = new Date();
@@ -1087,6 +1260,7 @@ const firebaseConfig = {
             return `${year}-${month}-${day}`;
         }
 
+        /* Default fallback size distribution when a plan does not store explicit size targets */
         function generateSizeBreakdown(totalQty) {
             if (!totalQty || totalQty <= 0) return {};
             const ratios = {
@@ -1108,8 +1282,92 @@ const firebaseConfig = {
             return breakdown;
         }
 
+        /* Helper to build a proportional size breakdown using a plan's exact size ratios */
+        function distributeQtyBySizes(totalQty, referenceSizes) {
+            if (!totalQty || totalQty <= 0) return {};
+            if (!referenceSizes) return generateSizeBreakdown(totalQty);
+            const refTotal = SML_SIZES.reduce((sum, sz) => sum + Number(referenceSizes[sz] || 0), 0);
+            if (refTotal <= 0) return generateSizeBreakdown(totalQty);
+
+            const result = {};
+            const remainders = [];
+            let allocated = 0;
+
+            SML_SIZES.forEach(sz => {
+                const exact = (Number(referenceSizes[sz] || 0) / refTotal) * totalQty;
+                const floored = Math.floor(exact);
+                result[sz] = floored;
+                allocated += floored;
+                remainders.push({ sz, rem: exact - floored });
+            });
+
+            // Distribute remaining units to sizes with largest fractional remainders
+            let left = totalQty - allocated;
+            remainders.sort((a, b) => b.rem - a.rem);
+            for (let i = 0; i < remainders.length && left > 0; i++) {
+                if (Number(referenceSizes[remainders[i].sz] || 0) > 0) {
+                    result[remainders[i].sz] += 1;
+                    left--;
+                }
+            }
+            return result;
+        }
+
+        /* Helper to map compact 13-element size arrays [sz1..sz13] into {1: ..., 13: ...} object */
+        function mapSizeArray(arr) {
+            const obj = {};
+            SML_SIZES.forEach((sz, idx) => {
+                obj[sz] = Number(arr[idx] || 0);
+            });
+            return obj;
+        }
+
+        /* Deduce Box Category ("1","2","3","4") from item code second character (A->1, B->2, C->3, D->4) */
+        function deduceBoxCategory(code) {
+            const cleaned = String(code || '').trim().toUpperCase();
+            if (cleaned.length >= 2) {
+                const ch = cleaned[1];
+                if (ch === 'A') return '1';
+                if (ch === 'B') return '2';
+                if (ch === 'C') return '3';
+                if (ch === 'D') return '4';
+            }
+            return '-';
+        }
+
+        /* Helper for building structured Box Plan entries from spreadsheet tuples */
+        function makeBoxPlan(code, planNo, targetQty, sizeArr, month = "NOV") {
+            return {
+                planNo,
+                code,
+                category: deduceBoxCategory(code),
+                type: "BOX",
+                targetQty,
+                month,
+                itemType: "Box",
+                sizes: mapSizeArray(sizeArr)
+            };
+        }
+
+        /* Helper for building structured Rubber Plan entries from spreadsheet tuples */
+        function makeRubberPlan(prevCode, code, month, planNo, targetQty, sizeArr) {
+            const prefix = String(code || '').toUpperCase().startsWith('OI') ? 'OI' : 'GF';
+            return {
+                planNo,
+                code,
+                prevCode: prevCode || code,
+                category: prefix,
+                type: `${prefix}-RUBBER`,
+                targetQty,
+                month,
+                itemType: "Rubber",
+                sizes: mapSizeArray(sizeArr)
+            };
+        }
+
+        /* Existing Master Plans + Added Box Plans (NOV, 97 rows) + Added Rubber Plans (NOV/DEC, 52 rows) */
         const initialPlans = [
-            // Box Items
+            // --- Existing Box Items ---
             { planNo: "26-09-203GP", code: "GD-0428", category: "4", type: "F1", targetQty: 80, month: "OCT", itemType: "Box" },
             { planNo: "26-09-203GR", code: "GD-0428", category: "4", type: "F1", targetQty: 930, month: "OCT", itemType: "Box" },
             { planNo: "26-09-217GG", code: "GD-0428", category: "4", type: "F1", targetQty: 1010, month: "OCT", itemType: "Box" },
@@ -1152,7 +1410,7 @@ const firebaseConfig = {
             { planNo: "26-11-122GG", code: "GC-0444", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
             { planNo: "26-11-123GG", code: "GC-0444", category: "3", type: "F2", targetQty: 1000, month: "NOV", itemType: "Box" },
 
-            // Rubber Items (GF)
+            // --- Existing Rubber Items (GF) ---
             { planNo: "26-09-432GG", code: "GF0286", category: "GENS", type: "GF-RUBBER", targetQty: 5040, month: "OCT", itemType: "Rubber" },
             { planNo: "26-09-480GR", code: "GF0292", category: "KID", type: "GF-RUBBER", targetQty: 5105, month: "OCT", itemType: "Rubber" },
             { planNo: "26-09-491GG", code: "GF0300", category: "GENS", type: "GF-RUBBER", targetQty: 5000, month: "OCT", itemType: "Rubber" },
@@ -1168,7 +1426,177 @@ const firebaseConfig = {
             { planNo: "26-10-716GG", code: "GF0300", category: "GENS", type: "GF-RUBBER", targetQty: 4120, month: "OCT", itemType: "Rubber" },
             { planNo: "26-10-706GP", code: "GF0291", category: "KID", type: "GF-RUBBER", targetQty: 80, month: "OCT", itemType: "Rubber" },
             { planNo: "26-10-706GR", code: "GF0291", category: "KID", type: "GF-RUBBER", targetQty: 3080, month: "OCT", itemType: "Rubber" },
-            { planNo: "26-10-821GG", code: "GF0315", category: "GENS", type: "GF-RUBBER", targetQty: 4120, month: "OCT", itemType: "Rubber" }
+            { planNo: "26-10-821GG", code: "GF0315", category: "GENS", type: "GF-RUBBER", targetQty: 4120, month: "OCT", itemType: "Rubber" },
+
+            // --- Added Box Plans (NOV - 97 rows, Total Qty: 80,380) ---
+            makeBoxPlan("GB-0698", "25-11-520GG", 1000, [0,0,0,60,160,240,280,260,0,0,0,0,0]),
+            makeBoxPlan("GB-0698", "25-11-521GG", 520,  [0,0,0,40,80,120,140,140,0,0,0,0,0]),
+            makeBoxPlan("GB-0699", "25-11-522GG", 1000, [0,0,20,80,100,240,260,300,0,0,0,0,0]),
+            makeBoxPlan("GB-0700", "25-11-523GG", 1000, [0,0,20,60,180,260,260,220,0,0,0,0,0]),
+            makeBoxPlan("GB-0700", "25-11-524GG", 1000, [0,0,0,80,180,260,260,220,0,0,0,0,0]),
+            makeBoxPlan("GB-0700", "25-11-525GG", 1000, [0,0,0,60,160,280,280,220,0,0,0,0,0]),
+            makeBoxPlan("GB-0701", "25-11-526GG", 500,  [0,0,0,60,100,140,100,100,0,0,0,0,0]),
+            makeBoxPlan("GB-0701", "25-11-527GG", 1000, [0,0,20,80,160,260,200,280,0,0,0,0,0]),
+            makeBoxPlan("GB-0702", "25-11-528GG", 1000, [0,0,0,120,220,260,220,180,0,0,0,0,0]),
+            makeBoxPlan("GB-0702", "25-11-529GG", 1000, [0,0,0,120,220,280,240,140,0,0,0,0,0]),
+            makeBoxPlan("GA-0454", "25-11-530GG", 1000, [0,0,0,0,0,130,240,300,220,110,0,0,0]),
+            makeBoxPlan("GA-0455", "25-11-531GG", 1000, [0,0,0,0,0,130,240,300,220,110,0,0,0]),
+            makeBoxPlan("GC-0353", "25-11-532GG", 1000, [0,0,0,100,100,120,160,180,160,120,60,0,0]),
+            makeBoxPlan("GC-0353", "25-11-533GG", 1000, [0,0,0,60,80,140,160,160,140,120,140,0,0]),
+            makeBoxPlan("GC-0355", "25-11-534GG", 1000, [0,0,0,160,220,220,200,200,0,0,0,0,0]),
+            makeBoxPlan("GC-0356", "25-11-535GG", 1000, [0,0,0,180,220,220,200,180,0,0,0,0,0]),
+            makeBoxPlan("GC-0357", "25-11-536GG", 1000, [0,0,0,100,100,100,120,140,160,140,140,0,0]),
+            makeBoxPlan("GC-0357", "25-11-537GG", 1000, [0,0,0,80,80,80,140,160,160,160,140,0,0]),
+            makeBoxPlan("GC-0357", "25-11-538GG", 1000, [0,0,0,80,80,80,140,160,160,160,140,0,0]),
+            makeBoxPlan("GC-0358", "25-11-539GG", 1000, [140,140,160,180,180,0,0,0,0,0,0,100,100]),
+            makeBoxPlan("GC-0358", "25-11-540GG", 1000, [140,140,160,180,180,0,0,0,0,0,0,100,100]),
+            makeBoxPlan("GC-0359", "25-11-541GG", 1000, [140,160,160,180,160,0,0,0,0,0,0,100,100]),
+            makeBoxPlan("GC-0359", "25-11-542GG", 1000, [140,160,160,160,160,0,0,0,0,0,0,100,120]),
+            makeBoxPlan("GC-0360", "25-11-543GG", 1000, [140,160,160,160,160,0,0,0,0,0,0,100,120]),
+            makeBoxPlan("XC-0052", "25-11-544GG", 860,  [0,60,200,220,200,180,0,0,0,0,0,0,0]),
+            makeBoxPlan("XC-0052", "25-11-545GG", 860,  [0,100,180,200,200,180,0,0,0,0,0,0,0]),
+            makeBoxPlan("XC-0052", "25-11-546GG", 860,  [0,100,180,200,200,180,0,0,0,0,0,0,0]),
+            makeBoxPlan("XC-0053", "25-11-547GG", 1000, [120,0,0,0,0,40,40,100,100,160,160,160,120]),
+            makeBoxPlan("XC-0053", "25-11-548GG", 1000, [100,0,0,0,0,40,60,60,120,140,160,160,160]),
+            makeBoxPlan("JC-0513", "25-11-549GG", 1020, [0,0,0,100,100,100,140,140,160,140,140,0,0]),
+            makeBoxPlan("GD-0340", "25-11-550GG", 1020, [0,0,0,100,140,140,120,180,140,140,60,0,0]),
+            makeBoxPlan("GD-0340", "25-11-551GG", 1000, [0,0,0,100,100,120,160,160,120,120,120,0,0]),
+            makeBoxPlan("GD-0340", "25-11-552GG", 1000, [0,0,0,100,100,120,160,160,120,120,120,0,0]),
+            makeBoxPlan("GD-0340", "25-11-553GG", 1000, [0,0,0,100,100,120,160,160,120,120,120,0,0]),
+            makeBoxPlan("GD-0340", "25-11-554GG", 1000, [0,0,0,100,100,120,160,160,120,120,120,0,0]),
+            makeBoxPlan("GD-0341", "25-11-555GG", 1000, [0,0,0,80,80,120,140,160,160,120,140,0,0]),
+            makeBoxPlan("GD-0341", "25-11-556GG", 1000, [0,0,0,100,100,120,140,160,140,140,100,0,0]),
+            makeBoxPlan("GD-0343", "25-11-557GG", 1020, [0,0,0,120,120,120,180,140,160,140,40,0,0]),
+            makeBoxPlan("GD-0343", "25-11-558GG", 1000, [0,0,0,80,100,120,140,160,120,120,160,0,0]),
+            makeBoxPlan("GD-0343", "25-11-559GG", 1000, [0,0,0,80,100,120,140,160,120,120,160,0,0]),
+            makeBoxPlan("GD-0344", "25-11-560GG", 1000, [140,180,180,140,120,0,0,0,0,0,0,100,140]),
+            makeBoxPlan("GD-0345", "25-11561GG",  1000, [160,160,160,140,120,0,0,0,0,0,0,120,140]),
+            makeBoxPlan("GD-0345", "25-11-562GG", 1000, [140,160,180,140,120,0,0,0,0,0,0,120,140]),
+            makeBoxPlan("GD-0346", "25-11-563GG", 500,  [80,80,80,80,60,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("GD-0346", "25-11-564GG", 500,  [60,80,80,60,80,0,0,0,0,0,0,60,80]),
+            makeBoxPlan("GD-0347", "25-11-565GG", 500,  [60,80,100,60,60,0,0,0,0,0,0,60,80]),
+            makeBoxPlan("GD-0347", "25-11-566GG", 500,  [80,80,80,80,60,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("GD-0348", "25-11-567GG", 500,  [60,100,80,60,60,0,0,0,0,0,0,60,80]),
+            makeBoxPlan("GD-0348", "25-11-568GG", 500,  [80,80,80,80,60,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("GD-0349", "25-11-569GG", 1000, [140,180,160,140,120,0,0,0,0,0,0,120,140]),
+            makeBoxPlan("TD-0610", "25-11-570GG", 500,  [80,80,80,80,60,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("TD-0610", "25-11-572GG", 500,  [60,80,80,80,60,0,0,0,0,0,0,60,80]),
+            makeBoxPlan("GC-0367", "25-11-573GG", 1000, [0,0,0,60,100,120,160,160,140,140,120,0,0]),
+            makeBoxPlan("GC-0367", "25-11-574GG", 1000, [0,0,0,80,80,140,160,160,160,120,100,0,0]),
+            makeBoxPlan("XC-0054", "25-11-575GG", 1000, [120,0,0,0,0,40,40,80,120,160,160,160,120]),
+            makeBoxPlan("GC-0336", "25-11-576GG", 1000, [0,0,0,60,80,100,100,180,180,140,160,0,0]),
+            makeBoxPlan("GD-0320", "25-11-577GG", 1040, [0,0,0,60,80,140,180,200,160,120,100,0,0]),
+            makeBoxPlan("GD-0320", "25-11-578GG", 1000, [0,0,0,60,100,140,180,180,140,100,100,0,0]),
+            makeBoxPlan("GD-0320", "25-11-579GG", 1000, [0,0,0,100,100,120,160,160,140,120,100,0,0]),
+            makeBoxPlan("OC-0508", "25-11-580GG", 500,  [60,60,80,80,100,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("OC-0508", "25-11-581GG", 500,  [60,80,80,80,80,0,0,0,0,0,0,60,60]),
+            makeBoxPlan("OC-0509", "25-11-582GG", 1000, [0,0,0,60,80,120,120,160,160,160,140,0,0]),
+            makeBoxPlan("OC-0510", "25-11-583GG", 500,  [0,0,0,40,60,60,80,80,80,80,20,0,0]),
+            makeBoxPlan("OC-0510", "25-11-584GG", 500,  [0,0,0,40,40,60,60,80,60,60,100,0,0]),
+            makeBoxPlan("TD-0608", "25-11-585GG", 1020, [0,0,0,60,80,100,160,160,180,140,140,0,0]),
+            makeBoxPlan("GC-0317", "25-11-586GG", 500,  [0,0,0,80,100,120,120,80,0,0,0,0,0]),
+            makeBoxPlan("GD-0325", "25-11-587GG", 1000, [0,0,0,160,200,220,220,200,0,0,0,0,0]),
+            makeBoxPlan("GD-0325", "25-11-588GG", 1000, [0,0,0,160,220,220,220,180,0,0,0,0,0]),
+            makeBoxPlan("GD-0327", "25-11-589GG", 1000, [0,0,0,180,220,220,220,160,0,0,0,0,0]),
+            makeBoxPlan("GD-0327", "25-11-590GG", 1000, [0,0,0,160,200,200,220,220,0,0,0,0,0]),
+            makeBoxPlan("OC-0511", "25-11-591GG", 1020, [120,120,120,140,160,100,0,0,0,0,0,140,120]),
+            makeBoxPlan("XC-0043", "25-11-592GG", 1000, [100,0,0,0,0,40,60,80,100,140,160,160,160]),
+            makeBoxPlan("XC-0043", "25-11-593GG", 500,  [60,0,0,0,0,20,20,40,60,80,80,80,60]),
+            makeBoxPlan("XC-0048", "25-11-594GG", 1000, [100,0,0,0,0,60,60,100,120,120,140,140,160]),
+            makeBoxPlan("XC-0048", "25-11-595GG", 500,  [60,0,0,0,0,20,40,40,60,80,80,60,60]),
+            makeBoxPlan("GC-0368", "25-11-596GG", 500,  [100,80,80,80,60,0,0,0,0,0,0,40,60]),
+            makeBoxPlan("GC-0368", "25-11-597GG", 1000, [100,160,180,180,160,0,0,0,0,0,0,100,120]),
+            makeBoxPlan("GC-0369", "25-11-598GG", 1000, [140,140,160,160,200,0,0,0,0,0,0,100,100]),
+            makeBoxPlan("GD-0319", "25-11-599GG", 500,  [0,0,0,80,100,120,120,80,0,0,0,0,0]),
+            makeBoxPlan("GD-0322", "25-11-600GG", 400,  [0,0,0,40,60,60,60,60,40,40,40,0,0]),
+            makeBoxPlan("GD-0330", "25-11-601GG", 520,  [0,0,0,60,60,60,80,80,60,60,60,0,0]),
+            makeBoxPlan("GD-0333", "25-11-602GG", 1020, [140,160,160,160,160,0,0,0,0,0,0,120,120]),
+            makeBoxPlan("GD-0333", "25-11-603GG", 1000, [140,140,160,140,140,0,0,0,0,0,0,140,140]),
+            makeBoxPlan("GB-0716", "25-11-604GG", 1000, [0,0,0,140,280,260,180,140,0,0,0,0,0]),
+            makeBoxPlan("GB-0717", "25-11-605GG", 1000, [0,0,0,140,280,260,180,140,0,0,0,0,0]),
+            makeBoxPlan("GB-0718", "25-11-606GG", 800,  [0,0,0,120,220,200,140,120,0,0,0,0,0]),
+            makeBoxPlan("GB-0719", "25-11-607GG", 800,  [0,0,0,120,220,200,140,120,0,0,0,0,0]),
+            makeBoxPlan("GD-0337", "25-11-608GG", 1000, [180,160,160,160,160,0,0,0,0,0,0,100,80]),
+            makeBoxPlan("GD-0353", "25-11-609GP", 70,   [10,10,10,10,10,0,0,0,0,0,0,10,10]),
+            makeBoxPlan("GD-0353", "25-11-609GR", 430,  [70,70,70,70,70,0,0,0,0,0,0,50,30]),
+            makeBoxPlan("GD-0353", "25-11-610GG", 500,  [80,80,80,80,80,0,0,0,0,0,0,40,60]),
+            makeBoxPlan("OA-0500", "25-11-611GP", 50,   [0,0,0,0,0,10,10,10,10,10,0,0,0]),
+            makeBoxPlan("OA-0500", "25-11-611GR", 550,  [0,0,0,0,0,70,110,170,130,70,0,0,0]),
+            makeBoxPlan("OA-0501", "25-11-612GP", 50,   [0,0,0,0,0,10,10,10,10,10,0,0,0]),
+            makeBoxPlan("OA-0501", "25-11-612GR", 950,  [0,0,0,0,0,110,210,270,230,130,0,0,0]),
+            makeBoxPlan("OA-0502", "25-11-613GP", 50,   [0,0,0,0,0,10,10,10,10,10,0,0,0]),
+            makeBoxPlan("OA-0502", "25-11-613GR", 950,  [0,0,0,0,0,110,210,270,230,130,0,0,0]),
+
+            // --- Added Rubber / GF / OI Plans (NOV & DEC - 52 rows) ---
+            // GF0231 -> GF-0236 (NOV: 70,160)
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-050GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-051GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-052GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-053GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-054GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-055GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-056GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-057GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-058GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-059GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-060GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-061GG", 5000, [0,0,150,200,400,650,1250,1200,750,400,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-062GG", 5000, [0,0,150,200,400,650,1250,1200,810,340,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "NOV", "25-11-063GG", 5160, [0,0,210,540,440,1130,950,1280,610,0,0,0,0]),
+
+            // GF0231 -> GF-0236 (DEC: 65,000)
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-001GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-002GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-003GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-004GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-005GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-006GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-007GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-008GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-009GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-010GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-011GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-012GG", 5000, [0,0,0,0,450,850,1400,1450,550,300,0,0,0]),
+            makeRubberPlan("GF0231", "GF-0236", "DEC", "25-12-013GG", 5000, [0,0,0,0,170,1070,1600,1200,630,330,0,0,0]),
+
+            // GF0238 -> GF0238 (DEC: 33,580)
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-014GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-015GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-016GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-017GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-018GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-019GG", 5000, [0,0,0,0,400,700,1250,1400,650,600,0,0,0]),
+            makeRubberPlan("GF0238", "GF0238", "DEC", "25-12-020GG", 3580, [0,0,0,0,280,480,1100,1200,440,80,0,0,0]),
+
+            // GF0237 -> GF0237 (NOV: 20,000)
+            makeRubberPlan("GF0237", "GF0237", "NOV", "25-11-070GP", 60,   [0,0,0,0,10,10,10,10,10,10,0,0,0]),
+            makeRubberPlan("GF0237", "GF0237", "NOV", "25-11-070GR", 4940, [0,0,0,0,490,690,1190,1190,840,540,0,0,0]),
+            makeRubberPlan("GF0237", "GF0237", "NOV", "25-11-071GG", 5000, [0,0,0,0,500,700,1200,1200,850,550,0,0,0]),
+            makeRubberPlan("GF0237", "GF0237", "NOV", "25-11-072GG", 5000, [0,0,0,0,500,700,1200,1200,850,550,0,0,0]),
+            makeRubberPlan("GF0237", "GF0237", "NOV", "25-11-073GG", 5000, [0,0,0,0,460,620,1280,1240,890,510,0,0,0]),
+
+            // GF0210 -> GF0210 (NOV: 30,120)
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-064GG", 5000, [0,0,300,800,1400,1300,850,350,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-065GG", 5000, [0,0,300,800,1400,1300,850,350,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-066GG", 5000, [0,0,300,800,1400,1300,850,350,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-067GG", 5000, [0,0,300,800,1400,1300,850,350,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-068GG", 5000, [0,0,300,800,1400,1300,850,350,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "NOV", "25-11-069GG", 5120, [0,0,380,780,1340,1240,870,510,0,0,0,0,0]),
+
+            // GF0210 -> GF0210 (DEC: 20,000)
+            makeRubberPlan("GF0210", "GF0210", "DEC", "25-12-021GG", 5000, [0,0,300,800,1350,1250,850,450,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "DEC", "25-12-022GG", 5000, [0,0,300,800,1350,1250,850,450,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "DEC", "25-12-023GG", 5000, [0,0,300,800,1350,1250,850,450,0,0,0,0,0]),
+            makeRubberPlan("GF0210", "GF0210", "DEC", "25-12-024GG", 5000, [0,0,330,750,1480,1380,930,130,0,0,0,0,0]),
+
+            // GF0218 -> GF0218 (DEC: 5,000)
+            makeRubberPlan("GF0218", "GF0218", "DEC", "25-12-025GG", 5000, [0,0,380,840,1340,1220,860,360,0,0,0,0,0]),
+
+            // GF0221 -> GF0221 (NOV: 5,120)
+            makeRubberPlan("GF0221", "GF0221", "NOV", "25-11-074GG", 5120, [0,0,0,1440,1280,1160,720,520,0,0,0,0,0]),
+
+            // OI2018 -> OI2018 (NOV: 3,020)
+            makeRubberPlan("OI2018", "OI2018", "NOV", "25-11-075GG", 3020, [0,0,0,0,380,380,680,680,520,380,0,0,0])
         ];
 
         function setText(id, text) {
@@ -1186,10 +1614,54 @@ const firebaseConfig = {
             filterStatus: 'ALL',
             searchQuery: '',
             currentTab: 'overview',
-            parsedPdfData: null
+            parsedPdfData: null,
+            excelWorkbook: null,
+            excelFileName: '',
+            excelParsedRows: [],
+            excelPreviewFilter: 'ALL'
         };
 
         let pendingDateTargetId = null;
+
+        /* Merge any missing plans from initialPlans into existing plans while strictly neglecting duplicate plan numbers */
+        function mergeMissingInitialPlans(existingPlans) {
+            const planMap = new Map();
+            const merged = [];
+
+            (existingPlans || []).forEach(p => {
+                const key = String(p.planNo || '').trim().toUpperCase();
+                if (!key || planMap.has(key)) return; // Neglect duplicate plan numbers
+                const copy = { ...p };
+                planMap.set(key, copy);
+                merged.push(copy);
+            });
+
+            let changed = merged.length !== (existingPlans || []).length;
+
+            initialPlans.forEach(initPlan => {
+                const key = String(initPlan.planNo || '').trim().toUpperCase();
+                if (!key) return;
+                if (!planMap.has(key)) {
+                    const copy = JSON.parse(JSON.stringify(initPlan));
+                    planMap.set(key, copy);
+                    merged.push(copy);
+                    changed = true;
+                } else {
+                    // Enrich existing plan with explicit size breakdown if missing
+                    const existing = planMap.get(key);
+                    if (!existing.sizes && initPlan.sizes) {
+                        existing.sizes = { ...initPlan.sizes };
+                        changed = true;
+                    }
+                    if (!existing.prevCode && initPlan.prevCode) {
+                        existing.prevCode = initPlan.prevCode;
+                        changed = true;
+                    }
+                }
+            });
+
+            return { plans: merged, changed };
+        }
 
         const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sml_dashboard_sync_channel') : null;
 
@@ -1197,7 +1669,7 @@ const firebaseConfig = {
             broadcastChannel.onmessage = (event) => {
                 if (event.data && event.data.type === 'SML_STATE_UPDATE') {
                     const { plans, logs, deletedLogs } = event.data.payload;
-                    state.plans = plans || state.plans;
+                    if (plans) state.plans = mergeMissingInitialPlans(plans).plans;
                     state.logs = logs || state.logs;
                     state.deletedLogs = deletedLogs || state.deletedLogs;
                     
@@ -1215,7 +1687,7 @@ const firebaseConfig = {
                 const savedPlans = localStorage.getItem('sml_plans_data_v4');
                 const savedLogs = localStorage.getItem('sml_logs_data_v4');
                 const savedDeletedLogs = localStorage.getItem('sml_deleted_logs_v4');
-                if (savedPlans) state.plans = JSON.parse(savedPlans);
+                if (savedPlans) state.plans = mergeMissingInitialPlans(JSON.parse(savedPlans)).plans;
                 if (savedLogs) state.logs = JSON.parse(savedLogs);
                 if (savedDeletedLogs) state.deletedLogs = JSON.parse(savedDeletedLogs);
                 refreshUI();
@@ -1327,7 +1799,7 @@ const firebaseConfig = {
             onSnapshot(stateDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.plans) state.plans = data.plans;
+                    if (data.plans) state.plans = mergeMissingInitialPlans(data.plans).plans;
                     if (data.logs) state.logs = data.logs;
                     if (data.deletedLogs) state.deletedLogs = data.deletedLogs;
 
@@ -1350,7 +1822,18 @@ const firebaseConfig = {
             const savedLogs = localStorage.getItem('sml_logs_data_v4');
             const savedDeletedLogs = localStorage.getItem('sml_deleted_logs_v4');
 
-            state.plans = savedPlans ? JSON.parse(savedPlans) : initialPlans;
+            if (savedPlans) {
+                const parsed = JSON.parse(savedPlans);
+                const mergedResult = mergeMissingInitialPlans(parsed);
+                state.plans = mergedResult.plans;
+                if (mergedResult.changed) {
+                    localStorage.setItem('sml_plans_data_v4', JSON.stringify(state.plans));
+                }
+            } else {
+                state.plans = JSON.parse(JSON.stringify(initialPlans));
+                localStorage.setItem('sml_plans_data_v4', JSON.stringify(state.plans));
+            }
+
             state.logs = savedLogs ? JSON.parse(savedLogs) : [];
             state.deletedLogs = savedDeletedLogs ? JSON.parse(savedDeletedLogs) : [];
 
@@ -1394,6 +1877,486 @@ const firebaseConfig = {
             }
         }
 
+        /* ============================================================================
+         * NEXT MONTH EXCEL PLAN UPLOAD & DUPLICATE PLAN NUMBER NEGLECTION ENGINE
+         * ============================================================================ */
+
+        /* Determine calendar next month label (e.g., if today is Nov -> DEC) */
+        function getNextMonthAbbrev() {
+            const nextIdx = (new Date().getMonth() + 1) % 12;
+            return MONTH_ORDER[nextIdx];
+        }
+
+        /* Normalize cell header labels for flexible Excel column matching */
+        function normalizeHeader(val) {
+            return String(val || '').trim().toUpperCase().replace(/\s+/g, ' ');
+        }
+
+        /* Extract month abbreviation (JAN..DEC) from text or plan number (e.g., 25-12-001GG -> DEC) */
+        function detectMonthFromValue(cellVal, planNo) {
+            const str = String(cellVal || '').trim().toUpperCase();
+            for (const m of MONTH_ORDER) {
+                if (str === m || str.startsWith(m)) return m;
+            }
+            // Fallback: check YY-MM-... pattern inside Plan Number (e.g., 25-12-001GG => month 12 => DEC)
+            const pMatch = String(planNo || '').trim().match(/^\d{2}-(\d{2})-/);
+            if (pMatch) {
+                const mNum = parseInt(pMatch[1], 10);
+                if (mNum >= 1 && mNum <= 12) return MONTH_ORDER[mNum - 1];
+            }
+            return null;
+        }
+
+        /* Handle Excel file selection or drag-and-drop */
+        async function handleExcelFileUpload(e) {
+            const file = e.target.files ? e.target.files[0] : null;
+            if (!file) return;
+
+            if (!window.XLSX) {
+                showToast("Excel parser library (SheetJS) failed to load. Check internet connection.", "warning");
+                return;
+            }
+
+            try {
+                showToast(`Reading Excel workbook: ${file.name}...`, "info");
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = window.XLSX.read(arrayBuffer, { type: 'array' });
+
+                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    showToast("No worksheets found inside the uploaded Excel file.", "warning");
+                    return;
+                }
+
+                state.excelWorkbook = workbook;
+                state.excelFileName = file.name;
+
+                // Populate sheet selector dropdown
+                const sheetSelect = document.getElementById('excelSheetSelect');
+                if (sheetSelect) {
+                    sheetSelect.innerHTML = '';
+                    if (workbook.SheetNames.length > 1) {
+                        const allOpt = document.createElement('option');
+                        allOpt.value = '__ALL__';
+                        allOpt.text = `All Sheets (${workbook.SheetNames.length} sheets)`;
+                        sheetSelect.appendChild(allOpt);
+                    }
+                    workbook.SheetNames.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.text = name;
+                        sheetSelect.appendChild(opt);
+                    });
+                }
+
+                const dropLabel = document.getElementById('excelDropZoneLabel');
+                if (dropLabel) dropLabel.innerText = `Loaded: ${file.name} (Click or drop another file to replace)`;
+
+                reparseSelectedExcelSheet();
+            } catch (err) {
+                console.error("Excel Parsing Error:", err);
+                showToast("Could not read Excel file. Ensure it is a valid .xlsx, .xls, or .csv file.", "warning");
+            }
+
+            if (e.target) e.target.value = '';
+        }
+
+        /* Parse selected sheet (or all sheets) and flag duplicate plan numbers as neglected */
+        function reparseSelectedExcelSheet() {
+            if (!state.excelWorkbook) return;
+
+            const sheetChoice = document.getElementById('excelSheetSelect')?.value || state.excelWorkbook.SheetNames[0];
+            const sheetsToParse = (sheetChoice === '__ALL__') ? state.excelWorkbook.SheetNames : [sheetChoice];
+            const forcedMonthMode = document.getElementById('excelDefaultMonth')?.value || 'AUTO';
+            const forcedItemTypeMode = document.getElementById('excelDefaultItemType')?.value || 'AUTO';
+
+            const existingPlanSet = new Set(
+                state.plans.map(p => String(p.planNo || '').trim().toUpperCase()).filter(Boolean)
+            );
+            const seenInFileSet = new Set();
+            const parsedResults = [];
+
+            sheetsToParse.forEach(sheetName => {
+                const ws = state.excelWorkbook.Sheets[sheetName];
+                if (!ws) return;
+                const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                const sheetParsed = extractPlansFromSheetRows(rows, sheetName, forcedMonthMode, forcedItemTypeMode);
+
+                sheetParsed.forEach(item => {
+                    const normPlanNo = item.planNo.trim().toUpperCase();
+                    if (existingPlanSet.has(normPlanNo)) {
+                        parsedResults.push({
+                            ...item,
+                            importStatus: 'DUPLICATE_EXISTING',
+                            reason: 'Already exists in Master Plans (Neglected)'
+                        });
+                    } else if (seenInFileSet.has(normPlanNo)) {
+                        parsedResults.push({
+                            ...item,
+                            importStatus: 'DUPLICATE_IN_FILE',
+                            reason: 'Repeated plan number in Excel (Neglected)'
+                        });
+                    } else {
+                        seenInFileSet.add(normPlanNo);
+                        parsedResults.push({
+                            ...item,
+                            importStatus: 'NEW',
+                            reason: 'Ready to import'
+                        });
+                    }
+                });
+            });
+
+            state.excelParsedRows = parsedResults;
+            renderExcelPreviewModal();
+        }
+
+        /* Flexible row scanner supporting Box plan sheets, Rubber plan sheets, and general templates */
+        function extractPlansFromSheetRows(rows, sheetName, forcedMonthMode, forcedItemTypeMode) {
+            const extracted = [];
+            let colMap = null;
+
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (!Array.isArray(row) || row.every(c => String(c).trim() === '')) continue;
+
+                // Check if this row is a header row (contains PLAN NUMBER / PLAN NO)
+                const normCells = row.map(c => normalizeHeader(c));
+                const planHeaderIdx = normCells.findIndex(c =>
+                    c === 'PLAN NUMBER' || c === 'NEW PLAN NUMBER' || c === 'PLAN NO' || c === 'PLAN NO.' || c === 'PLAN #'
+                );
+
+                if (planHeaderIdx !== -1) {
+                    colMap = buildExcelColumnMap(normCells, planHeaderIdx);
+                    continue;
+                }
+
+                if (!colMap) continue;
+
+                const rawPlanNo = String(row[colMap.planNo] || '').trim().toUpperCase();
+                // Skip blank, subtotal, or repeated header rows
+                if (!rawPlanNo || rawPlanNo === 'TOTAL' || rawPlanNo === 'SUBTOTAL' || rawPlanNo.includes('PLAN')) continue;
+                // Must look like a valid plan identifier (alphanumeric with at least one digit)
+                if (!/\d/.test(rawPlanNo)) continue;
+
+                // Extract item codes
+                let code = colMap.newCode !== -1 ? String(row[colMap.newCode] || '').trim().toUpperCase() : '';
+                const prevCode = colMap.prevCode !== -1 ? String(row[colMap.prevCode] || '').trim().toUpperCase() : '';
+                if (!code && prevCode) code = prevCode;
+                if (!code) code = 'N/A';
+
+                // Extract sizes 1 to 13
+                const sizes = {};
+                let sizesSum = 0;
+                SML_SIZES.forEach(sz => {
+                    const cIdx = colMap.sizes[sz];
+                    const val = (cIdx !== undefined && cIdx !== -1) ? parseInt(String(row[cIdx] || '0').replace(/,/g, ''), 10) : 0;
+                    const cleanVal = isNaN(val) ? 0 : Math.max(0, val);
+                    sizes[sz] = cleanVal;
+                    sizesSum += cleanVal;
+                });
+
+                // Extract Target Qty (Order Qty / Deli.Qty), falling back to sum of sizes if needed
+                let targetQty = 0;
+                for (const qIdx of colMap.qtyCols) {
+                    const qVal = parseInt(String(row[qIdx] || '0').replace(/,/g, ''), 10);
+                    if (!isNaN(qVal) && qVal > 0) {
+                        targetQty = qVal;
+                        break;
+                    }
+                }
+                if (targetQty <= 0 && sizesSum > 0) targetQty = sizesSum;
+                if (targetQty <= 0) continue; // Ignore rows without valid target quantity
+
+                // Determine Sale Month
+                let month = forcedMonthMode !== 'AUTO' ? forcedMonthMode : null;
+                if (!month) {
+                    const rawMonthVal = colMap.month !== -1 ? row[colMap.month] : '';
+                    month = detectMonthFromValue(rawMonthVal, rawPlanNo);
+                    // Also check unnamed column adjacent to plan number (like Image 2)
+                    if (!month && colMap.planNo > 0) {
+                        month = detectMonthFromValue(row[colMap.planNo - 1], rawPlanNo);
+                    }
+                    if (!month) month = getNextMonthAbbrev();
+                }
+
+                // Determine Item Type (Box vs Rubber)
+                let itemType = forcedItemTypeMode !== 'AUTO' ? forcedItemTypeMode : '';
+                if (!itemType && colMap.itemType !== -1) {
+                    const rawIt = String(row[colMap.itemType] || '').trim().toUpperCase();
+                    if (rawIt.includes('RUBBER') || rawIt.includes('GF') || rawIt.includes('OI')) itemType = 'Rubber';
+                    else if (rawIt.includes('BOX')) itemType = 'Box';
+                }
+                if (!itemType) {
+                    const upperCode = code.toUpperCase();
+                    const upperSheet = String(sheetName || '').toUpperCase();
+                    if (
+                        upperCode.startsWith('GF') || upperCode.startsWith('OI') ||
+                        prevCode.startsWith('GF') || prevCode.startsWith('OI') ||
+                        upperSheet.includes('RUBBER') || upperSheet.includes('GF') ||
+                        targetQty >= 2000
+                    ) {
+                        itemType = 'Rubber';
+                    } else {
+                        itemType = 'Box';
+                    }
+                }
+
+                // Determine Category & Spec Type
+                let category = colMap.category !== -1 ? String(row[colMap.category] || '').trim().toUpperCase() : '';
+                let specType = colMap.specType !== -1 ? String(row[colMap.specType] || '').trim().toUpperCase() : '';
+
+                if (itemType === 'Rubber') {
+                    const prefix = code.startsWith('OI') ? 'OI' : 'GF';
+                    if (!category) category = prefix;
+                    if (!specType) specType = `${prefix}-RUBBER`;
+                } else {
+                    if (!category) category = deduceBoxCategory(code);
+                    if (!specType) specType = 'BOX';
+                }
+
+                extracted.push({
+                    planNo: rawPlanNo,
+                    code,
+                    prevCode: prevCode || undefined,
+                    category,
+                    type: specType,
+                    targetQty,
+                    month,
+                    itemType,
+                    sizes: sizesSum > 0 ? sizes : generateSizeBreakdown(targetQty)
+                });
+            }
+
+            return extracted;
+        }
+
+        /* Build dynamic column mapping from a header row */
+        function buildExcelColumnMap(normCells, planHeaderIdx) {
+            const map = {
+                planNo: planHeaderIdx,
+                newCode: -1,
+                prevCode: -1,
+                month: -1,
+                itemType: -1,
+                category: -1,
+                specType: -1,
+                qtyCols: [],
+                sizes: {}
+            };
+
+            normCells.forEach((cell, idx) => {
+                if (!cell) return;
+                if (cell.includes('NEW CODE') || cell.includes('NEW ITEM CODE') || cell === 'ITEM CODE' || cell === 'CODE') {
+                    map.newCode = idx;
+                } else if (cell.includes('PREV') && cell.includes('CODE')) {
+                    map.prevCode = idx;
+                } else if (cell === 'MONTH' || cell === 'SALE MONTH') {
+                    map.month = idx;
+                } else if (cell === 'ITEM TYPE') {
+                    map.itemType = idx;
+                } else if (cell === 'CATEGORY' || cell === 'CAT') {
+                    map.category = idx;
+                } else if (cell === 'SPEC TYPE' || cell === 'SPEC' || cell === 'TYPE') {
+                    map.specType = idx;
+                } else if (cell.includes('DELI') || cell.includes('ORDER QTY') || cell.includes('TARGET QTY') || cell === 'QTY' || cell === 'QUANTITY') {
+                    map.qtyCols.push(idx);
+                } else {
+                    // Match Size columns 01..13, 1..13, Sz 1..13, Size 1..13
+                    const szMatch = cell.match(/^(?:SZ|SIZE)?\s*0?([1-9]|1[0-3])$/);
+                    if (szMatch) {
+                        const szNum = parseInt(szMatch[1], 10);
+                        if (!map.sizes[szNum]) map.sizes[szNum] = idx;
+                    }
+                }
+            });
+
+            // Fallback if sheet uses CODE as first column and no NEW CODE found
+            if (map.newCode === -1 && map.prevCode !== -1) map.newCode = map.prevCode;
+            if (map.newCode === -1 && planHeaderIdx > 0) map.newCode = 0;
+
+            return map;
+        }
+
+        function setExcelPreviewFilter(filterVal) {
+            state.excelPreviewFilter = filterVal;
+            document.querySelectorAll('.excel-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-700');
+            });
+            const activeBtn = document.getElementById(`excelFilterBtn-${filterVal}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-100', 'text-slate-700');
+                activeBtn.classList.add('bg-slate-800', 'text-white');
+            }
+            renderExcelPreviewModal();
+        }
+
+        function renderExcelPreviewModal() {
+            const container = document.getElementById('excelParsePreviewContainer');
+            if (!container) return;
+            container.classList.remove('hidden');
+
+            const rows = state.excelParsedRows || [];
+            const newRows = rows.filter(r => r.importStatus === 'NEW');
+            const dupExisting = rows.filter(r => r.importStatus === 'DUPLICATE_EXISTING');
+            const dupFile = rows.filter(r => r.importStatus === 'DUPLICATE_IN_FILE');
+
+            setText('excelStatTotal', formatNumber(rows.length));
+            setText('excelStatNew', formatNumber(newRows.length));
+            setText('excelStatDupExisting', formatNumber(dupExisting.length));
+            setText('excelStatDupFile', formatNumber(dupFile.length));
+
+            const confirmBtn = document.getElementById('confirmExcelImportBtn');
+            const confirmBtnText = document.getElementById('confirmExcelImportBtnText');
+            if (confirmBtn) confirmBtn.disabled = newRows.length === 0;
+            if (confirmBtnText) confirmBtnText.innerText = newRows.length > 0 ? `Import ${newRows.length} New Plans` : 'No New Plans to Import';
+
+            const filteredRows = rows.filter(r => {
+                if (state.excelPreviewFilter === 'NEW') return r.importStatus === 'NEW';
+                if (state.excelPreviewFilter === 'DUP') return r.importStatus !== 'NEW';
+                return true;
+            });
+
+            const tbody = document.getElementById('excelParsedTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (filteredRows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-400 text-xs">No matching rows found in the selected worksheet.</td></tr>`;
+                return;
+            }
+
+            filteredRows.forEach(r => {
+                const isNew = r.importStatus === 'NEW';
+                const isExistingDup = r.importStatus === 'DUPLICATE_EXISTING';
+
+                let statusBadge = '';
+                if (isNew) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i>NEW PLAN</span>`;
+                } else if (isExistingDup) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap" title="${r.reason}"><i class="fa-solid fa-ban mr-1"></i>NEGLECTED (Exists)</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200 whitespace-nowrap" title="${r.reason}"><i class="fa-solid fa-copy mr-1"></i>NEGLECTED (In File)</span>`;
+                }
+
+                const sizeSummary = SML_SIZES
+                    .map(sz => r.sizes && r.sizes[sz] > 0 ? `<span class="inline-block bg-slate-100 px-1 rounded text-[10px] mr-0.5"><strong>${sz}:</strong>${r.sizes[sz]}</span>` : null)
+                    .filter(Boolean)
+                    .join(' ');
+
+                const tr = document.createElement('tr');
+                tr.className = isNew ? "hover:bg-emerald-50/40 text-xs" : "bg-slate-50/70 text-slate-400 text-xs";
+                tr.innerHTML = `
+                    <td class="p-2">${statusBadge}</td>
+                    <td class="p-2 font-bold ${isNew ? 'text-slate-900' : 'line-through text-slate-400'}">${r.planNo}</td>
+                    <td class="p-2 font-semibold">${r.code}</td>
+                    <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${r.itemType === 'Rubber' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}">${r.itemType}</span></td>
+                    <td class="p-2 font-bold">${r.month}</td>
+                    <td class="p-2 text-right font-extrabold ${isNew ? 'text-slate-900' : 'text-slate-400'}">${formatNumber(r.targetQty)}</td>
+                    <td class="p-2 max-w-[240px]">${sizeSummary || '<span class="text-[10px] italic">Auto-distributed</span>'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* Commit only NEW (non-duplicate) plans into state.plans */
+        async function confirmImportExcelPlans() {
+            const existingPlanSet = new Set(
+                state.plans.map(p => String(p.planNo || '').trim().toUpperCase()).filter(Boolean)
+            );
+
+            let importedCount = 0;
+            let neglectedCount = 0;
+
+            (state.excelParsedRows || []).forEach(item => {
+                if (item.importStatus !== 'NEW') {
+                    neglectedCount++;
+                    return;
+                }
+                const normPlanNo = item.planNo.trim().toUpperCase();
+                // Double-check guard to guarantee zero duplicated plan numbers
+                if (existingPlanSet.has(normPlanNo)) {
+                    neglectedCount++;
+                    return;
+                }
+
+                existingPlanSet.add(normPlanNo);
+                state.plans.push({
+                    planNo: item.planNo,
+                    code: item.code,
+                    ...(item.prevCode ? { prevCode: item.prevCode } : {}),
+                    category: item.category,
+                    type: item.type,
+                    targetQty: item.targetQty,
+                    month: item.month,
+                    itemType: item.itemType,
+                    sizes: item.sizes
+                });
+                importedCount++;
+            });
+
+            if (importedCount === 0) {
+                showToast("No new plans were imported (all rows were duplicates).", "warning");
+                return;
+            }
+
+            await saveStore();
+            closeModal('excelUploadModal');
+            state.excelWorkbook = null;
+            state.excelParsedRows = [];
+            const previewContainer = document.getElementById('excelParsePreviewContainer');
+            if (previewContainer) previewContainer.classList.add('hidden');
+            const dropLabel = document.getElementById('excelDropZoneLabel');
+            if (dropLabel) dropLabel.innerText = 'Click to browse or drag & drop Next Month Excel file here';
+
+            refreshUI();
+            const dupNotice = neglectedCount > 0 ? ` (${neglectedCount} duplicate plan${neglectedCount > 1 ? 's' : ''} neglected)` : '';
+            showToast(`Successfully imported ${importedCount} new plans${dupNotice}!`, "success");
+        }
+
+        /* Generate & download a clean sample Excel template matching SML columns */
+        function downloadSampleExcelTemplate() {
+            if (!window.XLSX) {
+                showToast("Excel library is still loading. Please try again in a moment.", "warning");
+                return;
+            }
+            const nextMonth = getNextMonthAbbrev();
+            const sampleRows = [
+                ["PREV ITEM CODE", "NEW ITEM CODE", "MONTH", "PLAN NUMBER", "DELI.QTY", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"],
+                ["", "GB-0720", nextMonth, `26-${String((new Date().getMonth() + 2) % 12 || 12).padStart(2, '0')}-101GG`, 1000, 0, 0, 0, 100, 200, 250, 250, 200, 0, 0, 0, 0, 0],
+                ["GF0231", "GF-0236", nextMonth, `26-${String((new Date().getMonth() + 2) % 12 || 12).padStart(2, '0')}-201GG`, 5000, 0, 0, 0, 0, 450, 850, 1400, 1450, 550, 300, 0, 0, 0]
+            ];
+            const wb = window.XLSX.utils.book_new();
+            const ws = window.XLSX.utils.aoa_to_sheet(sampleRows);
+            window.XLSX.utils.book_append_sheet(wb, ws, `${nextMonth}_PLAN`);
+            window.XLSX.writeFile(wb, `SML_Next_Month_Plan_Template_${nextMonth}.xlsx`);
+            showToast("Sample Excel template downloaded!", "success");
+        }
+
+        /* Enable Drag & Drop on Excel Dropzone */
+        function setupExcelDragAndDrop() {
+            const dropZone = document.getElementById('excelDropZone');
+            if (!dropZone) return;
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-teal-500', 'bg-teal-100/50');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-teal-500', 'bg-teal-100/50');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-teal-500', 'bg-teal-100/50');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleExcelFileUpload({ target: { files: e.dataTransfer.files } });
+                }
+            });
+        }
+
+        /* ============================================================================
+         * HOURLY SYSTEM SCAN PDF IMPORT LOGIC
+         * ============================================================================ */
         async function handlePdfFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -1438,9 +2401,6 @@ const firebaseConfig = {
         }
 
         function parseScanPdfText(text, sourceName) {
-            console.log("Raw Scanned Text Extracted:", text);
-
-            // Extract Report Date (e.g. 15/10/2026 or 20261015)
             let reportDate = getTodayDateString();
             const dateMatchDmy = text.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
             const dateMatchYmd = text.match(/Date:\s*(\d{4})(\d{2})(\d{2})/i);
@@ -1454,30 +2414,25 @@ const firebaseConfig = {
                 reportDate = `${dateMatchYmd[1]}-${dateMatchYmd[2]}-${dateMatchYmd[3]}`;
             }
 
-            // Extract Line Name & Time
             const lineMatch = text.match(/(AM Line Scanned|PM Line Scanned|[A-Z0-9\s]+Scanned)/i);
             const reportLine = lineMatch ? lineMatch[1] : "AM Line Scanned";
 
             const timeMatch = text.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM)?)/i);
             const reportTime = timeMatch ? timeMatch[1] : new Date().toLocaleTimeString();
 
-            // Extract Plan Rows (Looking for Plan Numbers matching format: e.g. 26-09-203GR, 26-10-399GG, 26-09-480GR, 26-09-491GG)
             const rows = [];
-            
-            // Regex to locate plan numbers with surrounding tokens
-            const planRegex = /([A-Z0-9-]+)\s+(26-\d{2}-\d{3}[A-Z]{2})\s+([\d\s]+)/gi;
+            const planRegex = /([A-Z0-9-]+)\s+(\d{2}-\d{2}-?\d{3}[A-Z]{2})\s+([\d\s]+)/gi;
             let match;
 
             while ((match = planRegex.exec(text)) !== null) {
                 const itemCode = match[1].trim();
-                const planNo = match[2].trim();
+                const planNo = match[2].trim().toUpperCase();
                 const numbersStr = match[3].trim();
 
-                // Extract individual size numbers
                 const nums = numbersStr.split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
                 
                 if (nums.length >= 1) {
-                    const rowTotal = nums[nums.length - 1]; // Last number in row is the total sum
+                    const rowTotal = nums[nums.length - 1];
                     const sizeNums = nums.slice(0, nums.length - 1);
                     
                     const sizes = {};
@@ -1494,13 +2449,12 @@ const firebaseConfig = {
                 }
             }
 
-            // Fallback line parser if strict regex miss
             if (rows.length === 0) {
                 const lines = text.split('\n');
                 lines.forEach(line => {
-                    const pMatch = line.match(/(26-\d{2}-\d{3}[A-Z]{2})/);
+                    const pMatch = line.match(/(\d{2}-\d{2}-?\d{3}[A-Z]{2})/i);
                     if (pMatch) {
-                        const planNo = pMatch[1];
+                        const planNo = pMatch[1].toUpperCase();
                         const tokens = line.trim().split(/\s+/);
                         const code = tokens[0] || "N/A";
                         const nums = tokens.filter(t => /^\d+$/.test(t)).map(Number);
@@ -1576,28 +2530,28 @@ const firebaseConfig = {
             let importedCount = 0;
 
             rows.forEach(r => {
-                // Check if Plan No exists in master plans, else auto-register
-                let plan = state.plans.find(p => p.planNo === r.planNo);
+                const normPlan = r.planNo.trim().toUpperCase();
+                let plan = state.plans.find(p => String(p.planNo || '').trim().toUpperCase() === normPlan);
                 if (!plan) {
-                    const isRubber = r.itemCode.startsWith('GF') || r.itemCode.startsWith('G');
+                    const isRubber = r.itemCode.startsWith('GF') || r.itemCode.startsWith('OI');
+                    const detectedMonth = detectMonthFromValue('', normPlan) || "OCT";
                     plan = {
-                        planNo: r.planNo,
+                        planNo: normPlan,
                         code: r.itemCode,
-                        category: isRubber ? "GENS" : "4",
-                        type: isRubber ? "GF-RUBBER" : "F1",
+                        category: isRubber ? (r.itemCode.startsWith('OI') ? "OI" : "GF") : deduceBoxCategory(r.itemCode),
+                        type: isRubber ? "GF-RUBBER" : "BOX",
                         targetQty: Math.max(1000, r.totalQty * 2),
-                        month: "OCT",
+                        month: detectedMonth,
                         itemType: isRubber ? "Rubber" : "Box"
                     };
                     state.plans.push(plan);
                 }
 
-                // Append to Assembly OUT daily logs
                 state.logs.push({
                     id: Date.now() + Math.floor(Math.random() * 1000),
                     date: reportDate,
                     type: 'OUT',
-                    planNo: r.planNo,
+                    planNo: plan.planNo,
                     qty: r.totalQty,
                     sizes: r.sizes,
                     rejects: 0,
@@ -1644,7 +2598,7 @@ const firebaseConfig = {
         function exportBackupJSON() {
             const backupData = {
                 app: "SML Production Plan & Output Dashboard",
-                version: "4.0",
+                version: "4.1",
                 exportDate: new Date().toISOString(),
                 plans: state.plans,
                 logs: state.logs,
@@ -1682,7 +2636,7 @@ const firebaseConfig = {
                         "Restore Full Database Backup",
                         `Restoring backup from ${imported.exportDate ? new Date(imported.exportDate).toLocaleString() : 'file'} will update all data. Proceed?`,
                         async () => {
-                            state.plans = imported.plans || [];
+                            state.plans = mergeMissingInitialPlans(imported.plans).plans;
                             state.logs = imported.logs || [];
                             state.deletedLogs = imported.deletedLogs || [];
                             await saveStore();
@@ -1786,7 +2740,7 @@ const firebaseConfig = {
             if (lockText) { lockText.innerText = 'Unlock Date'; lockText.className = ''; }
         }
 
-        /* Calculate complete stats for a given plan number including Production Receipts (PR) */
+        /* Calculate complete stats for a given plan number including exact size targets & Production Receipts (PR) */
         function getPlanStats(planNo) {
             const planLogs = state.logs.filter(l => l.planNo === planNo);
             const inputQty = planLogs.filter(l => l.type === 'IN').reduce((sum, l) => sum + Number(l.qty), 0);
@@ -1798,7 +2752,11 @@ const firebaseConfig = {
             const pendingPrQty = Math.max(0, outputQty - prQty);
 
             const planObj = state.plans.find(p => p.planNo === planNo) || {};
-            const sizeTargets = generateSizeBreakdown(planObj.targetQty || 0);
+            // Use exact plan size breakdown when available, else fallback to proportional distribution
+            const sizeTargets = (planObj.sizes && Object.keys(planObj.sizes).length > 0)
+                ? planObj.sizes
+                : generateSizeBreakdown(planObj.targetQty || 0);
+
             const sizeInputs = {};
             const sizeOutputs = {};
             const sizePrs = {};
@@ -1843,10 +2801,11 @@ const firebaseConfig = {
                 const matchesMonth = state.filterMonth === 'ALL' || p.month === state.filterMonth;
                 const q = state.searchQuery.toLowerCase();
                 const matchesSearch = !q || 
-                    p.planNo.toLowerCase().includes(q) || 
-                    p.code.toLowerCase().includes(q) || 
-                    p.type.toLowerCase().includes(q) ||
-                    p.category.toLowerCase().includes(q);
+                    String(p.planNo || '').toLowerCase().includes(q) || 
+                    String(p.code || '').toLowerCase().includes(q) || 
+                    String(p.prevCode || '').toLowerCase().includes(q) ||
+                    String(p.type || '').toLowerCase().includes(q) ||
+                    String(p.category || '').toLowerCase().includes(q);
 
                 return matchesType && matchesMonth && matchesSearch;
             });
@@ -1877,6 +2836,30 @@ const firebaseConfig = {
             else if (tabKey === 'wip' || tabKey === 'prTracker') renderActiveTrackers();
         }
 
+        /* Dynamically populate month dropdowns across Overview & Plans tab based on available plan months */
+        function populateMonthFilters() {
+            const uniqueMonths = Array.from(new Set(state.plans.map(p => String(p.month || '').toUpperCase()).filter(Boolean)));
+            uniqueMonths.sort((a, b) => {
+                const ia = MONTH_ORDER.indexOf(a);
+                const ib = MONTH_ORDER.indexOf(b);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                return a.localeCompare(b);
+            });
+
+            ['monthFilterSelect', 'plansTabMonthFilter'].forEach(selId => {
+                const sel = document.getElementById(selId);
+                if (!sel) return;
+                sel.innerHTML = `<option value="ALL">All Sale Months</option>`;
+                uniqueMonths.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.text = `${m} Month`;
+                    sel.appendChild(opt);
+                });
+                sel.value = (state.filterMonth === 'ALL' || uniqueMonths.includes(state.filterMonth)) ? state.filterMonth : 'ALL';
+            });
+        }
+
         function setFilter(type, value) {
             if (type === 'type') {
                 state.filterType = value;
@@ -1896,8 +2879,17 @@ const firebaseConfig = {
             const input = document.getElementById('searchInput');
             if (input) {
                 state.searchQuery = input.value.trim();
+                const plansSearch = document.getElementById('plansTabSearchInput');
+                if (plansSearch && plansSearch.value !== input.value) plansSearch.value = input.value;
                 refreshUI();
             }
+        }
+
+        function syncPlansSearch(val) {
+            state.searchQuery = val.trim();
+            const overviewSearch = document.getElementById('searchInput');
+            if (overviewSearch && overviewSearch.value !== val) overviewSearch.value = val;
+            refreshUI();
         }
 
         let dailyTrendChartInstance = null;
@@ -1979,7 +2971,7 @@ const firebaseConfig = {
                 itemTypeChartInstance = new Chart(ctxType, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Box Items', 'Rubber Items (GF)'],
+                        labels: ['Box Items', 'Rubber Items (GF/OI)'],
                         datasets: [{
                             data: [boxOutput || 1, rubberOutput || 1],
                             backgroundColor: ['#3b82f6', '#10b981'],
@@ -1995,6 +2987,7 @@ const firebaseConfig = {
         }
 
         function refreshUI() {
+            populateMonthFilters();
             const filteredPlans = getFilteredPlans();
 
             let totalTarget = 0;
@@ -2280,7 +3273,7 @@ const firebaseConfig = {
             const activePlans = [...plans].map(p => {
                 const stats = getPlanStats(p.planNo);
                 return { ...p, ...stats, pct: p.targetQty > 0 ? (stats.outputQty / p.targetQty) * 100 : 0 };
-            }).sort((a, b) => b.inputQty - a.inputQty).slice(0, 6);
+            }).sort((a, b) => b.inputQty - a.inputQty || b.targetQty - a.targetQty).slice(0, 6);
 
             if (activePlans.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-4 text-center">No matching plans found.</p>`;
@@ -2390,7 +3383,9 @@ const firebaseConfig = {
                 showToast("Please enter total defect quantity first.", "warning");
                 return;
             }
-            const sizeObj = generateSizeBreakdown(totalRejects);
+            const planNo = document.getElementById('outPlanSelect')?.value;
+            const planObj = state.plans.find(p => p.planNo === planNo);
+            const sizeObj = distributeQtyBySizes(totalRejects, planObj?.sizes);
             SML_SIZES.forEach(sz => {
                 const input = document.getElementById(`outRejectSize_${sz}`);
                 if (input) input.value = sizeObj[sz] || 0;
@@ -2414,7 +3409,10 @@ const firebaseConfig = {
                 showToast("Please enter total quantity first before distributing.", "warning");
                 return;
             }
-            const sizeObj = generateSizeBreakdown(totalQty);
+            const selectId = prefix === 'in' ? 'inPlanSelect' : (prefix === 'out' ? 'outPlanSelect' : 'prPlanSelect');
+            const planNo = document.getElementById(selectId)?.value;
+            const planObj = state.plans.find(p => p.planNo === planNo);
+            const sizeObj = distributeQtyBySizes(totalQty, planObj?.sizes);
             SML_SIZES.forEach(sz => {
                 const input = document.getElementById(`${prefix}Size_${sz}`);
                 if (input) input.value = sizeObj[sz] || 0;
@@ -2428,7 +3426,8 @@ const firebaseConfig = {
 
             const stats = getPlanStats(planNo);
             setText('sizeMatrixModalTitle', `Size Assortment Matrix - ${plan.planNo}`);
-            setText('sizeMatrixModalSubtitle', `Item Code: ${plan.code} | Category: ${plan.category} | Spec: ${plan.type} (${plan.itemType})`);
+            const prevNote = plan.prevCode && plan.prevCode !== plan.code ? ` (Prev: ${plan.prevCode})` : '';
+            setText('sizeMatrixModalSubtitle', `Item Code: ${plan.code}${prevNote} | Category: ${plan.category} | Spec: ${plan.type} (${plan.itemType})`);
 
             const summaryContainer = document.getElementById('sizeMatrixSummaryBar');
             if (summaryContainer) {
@@ -2520,6 +3519,8 @@ const firebaseConfig = {
                     statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Pending</span>`;
                 }
 
+                const prevLabel = (p.prevCode && p.prevCode !== p.code) ? ` <span class="text-[10px] text-slate-400 font-normal">(${p.prevCode})</span>` : '';
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/80 transition text-xs";
                 tr.innerHTML = `
@@ -2529,7 +3530,7 @@ const firebaseConfig = {
                         </span>
                     </td>
                     <td class="py-3 px-3 font-bold text-slate-900">${p.planNo}</td>
-                    <td class="py-3 px-3 font-semibold text-slate-700">${p.code}</td>
+                    <td class="py-3 px-3 font-semibold text-slate-700">${p.code}${prevLabel}</td>
                     <td class="py-3 px-3 text-slate-600">${p.category}</td>
                     <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">${p.month}</span></td>
                     <td class="py-3 px-3 text-right font-bold text-slate-800">${formatNumber(p.targetQty)}</td>
@@ -2629,7 +3630,7 @@ const firebaseConfig = {
             prSelect.innerHTML = `<option value="">-- Choose Plan Number --</option>`;
 
             state.plans.forEach(p => {
-                const optText = `${p.planNo} | Code: ${p.code} (${p.itemType} - Target: ${p.targetQty})`;
+                const optText = `${p.planNo} | Code: ${p.code} (${p.month} - ${p.itemType} - Target: ${p.targetQty})`;
                 
                 const opt1 = document.createElement('option'); opt1.value = p.planNo; opt1.text = optText; inSelect.appendChild(opt1);
                 const opt2 = document.createElement('option'); opt2.value = p.planNo; opt2.text = optText; outSelect.appendChild(opt2);
@@ -2728,7 +3729,8 @@ const firebaseConfig = {
             const sizes = {};
             SML_SIZES.forEach(sz => { sizes[sz] = Number(document.getElementById(`inSize_${sz}`)?.value || 0); });
             const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
-            const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+            const planObj = state.plans.find(p => p.planNo === planNo);
+            const finalSizes = sizesSum > 0 ? sizes : distributeQtyBySizes(qty, planObj?.sizes);
 
             state.logs.push({
                 id: Date.now(), date, type: 'IN', planNo, qty, sizes: finalSizes, rejects: 0, operator, remarks
@@ -2759,6 +3761,7 @@ const firebaseConfig = {
             }
 
             const stats = getPlanStats(planNo);
+            const planObj = state.plans.find(p => p.planNo === planNo);
             const submitOutput = async () => {
                 const sizes = {}; const rejectSizes = {};
                 SML_SIZES.forEach(sz => {
@@ -2767,9 +3770,9 @@ const firebaseConfig = {
                 });
 
                 const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
-                const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+                const finalSizes = sizesSum > 0 ? sizes : distributeQtyBySizes(qty, planObj?.sizes);
                 const rejectSizesSum = Object.values(rejectSizes).reduce((a, b) => a + b, 0);
-                const finalRejectSizes = rejectSizesSum > 0 ? rejectSizes : (rejects > 0 ? generateSizeBreakdown(rejects) : rejectSizes);
+                const finalRejectSizes = rejectSizesSum > 0 ? rejectSizes : (rejects > 0 ? distributeQtyBySizes(rejects, planObj?.sizes) : rejectSizes);
 
                 state.logs.push({
                     id: Date.now(), date, type: 'OUT', planNo, qty, sizes: finalSizes, rejects, rejectSizes: finalRejectSizes, operator, remarks
@@ -2808,11 +3811,12 @@ const firebaseConfig = {
             }
 
             const stats = getPlanStats(planNo);
+            const planObj = state.plans.find(p => p.planNo === planNo);
             const submitPR = async () => {
                 const sizes = {};
                 SML_SIZES.forEach(sz => { sizes[sz] = Number(document.getElementById(`prSize_${sz}`)?.value || 0); });
                 const sizesSum = Object.values(sizes).reduce((a, b) => a + b, 0);
-                const finalSizes = sizesSum > 0 ? sizes : generateSizeBreakdown(qty);
+                const finalSizes = sizesSum > 0 ? sizes : distributeQtyBySizes(qty, planObj?.sizes);
 
                 state.logs.push({
                     id: Date.now(), date, type: 'PR', planNo, prDocNo, qty, sizes: finalSizes, operator, remarks
@@ -2845,12 +3849,20 @@ const firebaseConfig = {
             const type = document.getElementById('newPlanType').value.trim().toUpperCase();
             const targetQty = Number(document.getElementById('newPlanTargetQty').value);
 
-            if (state.plans.some(p => p.planNo === planNo)) {
-                showToast(`Plan Number ${planNo} already exists!`, "warning");
+            if (state.plans.some(p => String(p.planNo || '').trim().toUpperCase() === planNo)) {
+                showToast(`Plan Number ${planNo} already exists! Duplicate neglected.`, "warning");
                 return;
             }
 
-            state.plans.push({ planNo, code, category, type, targetQty, month, itemType });
+            state.plans.push({
+                planNo,
+                code,
+                category: category || (itemType === 'Box' ? deduceBoxCategory(code) : 'GF'),
+                type: type || (itemType === 'Box' ? 'BOX' : 'GF-RUBBER'),
+                targetQty,
+                month,
+                itemType
+            });
             await saveStore();
             closeModal('addPlanModal');
             document.getElementById('addPlanForm').reset();
@@ -2987,6 +3999,11 @@ const firebaseConfig = {
         }
 
         /* Expose window scope methods */
+        window.handleExcelFileUpload = handleExcelFileUpload;
+        window.reparseSelectedExcelSheet = reparseSelectedExcelSheet;
+        window.setExcelPreviewFilter = setExcelPreviewFilter;
+        window.confirmImportExcelPlans = confirmImportExcelPlans;
+        window.downloadSampleExcelTemplate = downloadSampleExcelTemplate;
         window.handlePdfFileUpload = handlePdfFileUpload;
         window.handleRawTextParse = handleRawTextParse;
         window.confirmImportParsedPdfData = confirmImportParsedPdfData;
@@ -3001,6 +4018,7 @@ const firebaseConfig = {
         window.switchTab = switchTab;
         window.setFilter = setFilter;
         window.handleSearch = handleSearch;
+        window.syncPlansSearch = syncPlansSearch;
         window.exportSummaryCSV = exportSummaryCSV;
         window.openModal = openModal;
         window.closeModal = closeModal;
@@ -3025,6 +4043,7 @@ const firebaseConfig = {
         /* App Initialization */
         window.addEventListener('DOMContentLoaded', () => {
             initStore();
+            setupExcelDragAndDrop();
             createSizeGridHTML('in');
             createSizeGridHTML('out');
             createSizeGridHTML('pr');
