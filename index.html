@@ -1196,19 +1196,25 @@
                     <textarea id="firebaseConfigInput" rows="6" placeholder='Paste directly from Firebase Console, e.g.:
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "sml-db.firebaseapp.com",
-  projectId: "sml-db",
-  storageBucket: "sml-db.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyD-o5CfFNFWTjkWdqpbbEx3ZNN8R0G7mVE",
+  authDomain: "sml-prod-nov.firebaseapp.com",
+  projectId: "sml-prod-nov",
+  storageBucket: "sml-prod-nov.firebasestorage.app",
+  messagingSenderId: "588804621770",
+  appId: "1:588804621770:web:932e80429fadd1bcbf3b33",
+  measurementId: "G-DHT8C5LEEY"
 };' class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                 </div>
 
-                <div class="flex items-center justify-between pt-1">
-                    <button type="button" onclick="handleClearSyncConfig()" class="text-rose-600 hover:text-rose-800 text-xs font-bold underline">
-                        Disconnect / Reset Config
-                    </button>
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="handleUseDefaultSyncConfig()" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold underline">
+                            Use Default (sml-prod-nov)
+                        </button>
+                        <button type="button" onclick="handleClearSyncConfig()" class="text-rose-600 hover:text-rose-800 text-xs font-bold underline">
+                            Disconnect
+                        </button>
+                    </div>
                     <div class="flex space-x-2">
                         <button type="button" onclick="closeModal('syncSettingsModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">Cancel</button>
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md">Save & Connect</button>
@@ -1240,9 +1246,20 @@ const firebaseConfig = {
 
     <!-- Application JavaScript Logic -->
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp, getApps, getApp, deleteApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Built-in Firebase Configuration for SML Production Dashboard
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-o5CfFNFWTjkWdqpbbEx3ZNN8R0G7mVE",
+            authDomain: "sml-prod-nov.firebaseapp.com",
+            projectId: "sml-prod-nov",
+            storageBucket: "sml-prod-nov.firebasestorage.app",
+            messagingSenderId: "588804621770",
+            appId: "1:588804621770:web:932e80429fadd1bcbf3b33",
+            measurementId: "G-DHT8C5LEEY"
+        };
 
         // Initialize PDF.js worker URL
         if (window.pdfjsLib) {
@@ -1697,6 +1714,8 @@ const firebaseConfig = {
         let db = null;
         let auth = null;
         let currentUser = null;
+        let firestoreUnsubscribe = null;
+        let activeProjectId = firebaseConfig.projectId;
 
         function updateSyncBadge(isOnline, text, detailError = null) {
             const badge = document.getElementById('syncStatusBadge');
@@ -1706,20 +1725,20 @@ const firebaseConfig = {
             txtEl.innerText = text;
             if (isOnline) {
                 badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 cursor-pointer hover:bg-emerald-100 transition";
-                badge.title = "Real-time sync active across devices. Click to manage settings.";
+                badge.title = `Real-time sync active (${activeProjectId}). Click to manage settings.`;
             } else {
                 badge.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition";
-                badge.title = detailError ? `Sync Notice: ${detailError}. Click to view settings.` : "Local Network Sync Active. Click to add Cloud Firebase Sync.";
+                badge.title = detailError ? `Sync Notice: ${detailError}. Click to view settings.` : "Local Network Sync Active. Click to view Cloud Firebase Sync settings.";
             }
 
             const diagBox = document.getElementById('syncDiagnosticBox');
             if (diagBox) {
                 if (isOnline) {
                     diagBox.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs space-y-1";
-                    diagBox.innerHTML = `<div class="font-bold text-emerald-800 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Cloud Real-Time Database Connected</div><p class="text-emerald-700 text-[11px]">All transaction updates sync instantly across all connected devices and browsers in real time.</p>`;
+                    diagBox.innerHTML = `<div class="font-bold text-emerald-800 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Cloud Real-Time Database Connected (${activeProjectId})</div><p class="text-emerald-700 text-[11px]">All transaction updates sync instantly across all connected devices and browsers in real time.</p>`;
                 } else if (detailError) {
                     diagBox.className = "bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs space-y-1.5";
-                    diagBox.innerHTML = `<div class="font-bold text-rose-800 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Cloud Sync Notice (${detailError})</div><div class="text-rose-700 text-[11px] leading-relaxed">Check Firebase Console settings or use Local Network Mode.</div>`;
+                    diagBox.innerHTML = `<div class="font-bold text-rose-800 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Cloud Sync Notice (${detailError})</div><div class="text-rose-700 text-[11px] leading-relaxed">Check Firebase Console settings (Firestore rules / Anonymous Sign-In) or use Local Network Mode.</div>`;
                 } else {
                     diagBox.className = "bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-1";
                     diagBox.innerHTML = `<div class="font-bold text-blue-800 flex items-center gap-1.5"><i class="fa-solid fa-network-wired text-blue-600"></i> Local Network Broadcast Active</div><p class="text-blue-700 text-[11px]">Updates synchronize automatically across all open tabs and windows on your local network domain.</p>`;
@@ -1747,56 +1766,103 @@ const firebaseConfig = {
             const storageBucket = extractKey('storageBucket');
             const messagingSenderId = extractKey('messagingSenderId');
             const appId = extractKey('appId');
+            const measurementId = extractKey('measurementId');
 
             if (apiKey && projectId) {
-                return { apiKey, authDomain: authDomain || `${projectId}.firebaseapp.com`, projectId, storageBucket: storageBucket || `${projectId}.appspot.com`, messagingSenderId: messagingSenderId || '', appId: appId || '' };
+                const cfg = {
+                    apiKey,
+                    authDomain: authDomain || `${projectId}.firebaseapp.com`,
+                    projectId,
+                    storageBucket: storageBucket || `${projectId}.firebasestorage.app`,
+                    messagingSenderId: messagingSenderId || '',
+                    appId: appId || ''
+                };
+                if (measurementId) cfg.measurementId = measurementId;
+                return cfg;
             }
             return null;
         }
 
         async function initFirebaseSync() {
-            let firebaseConfig = null;
-            const customConfigStr = localStorage.getItem('sml_custom_firebase_config');
-            if (customConfigStr) {
-                try { firebaseConfig = JSON.parse(customConfigStr); } catch(e) {}
-            }
-            if (!firebaseConfig && typeof __firebase_config !== 'undefined') {
-                try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
-            }
-            if (!firebaseConfig) {
+            if (localStorage.getItem('sml_firebase_sync_disabled') === 'true') {
                 updateSyncBadge(false, "Local Network Sync Active");
                 return;
             }
 
-            try {
-                let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-                auth = getAuth(app);
-                db = getFirestore(app);
+            let activeFirebaseConfig = null;
+            let usingInjectedEnvConfig = false;
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+            const customConfigStr = localStorage.getItem('sml_custom_firebase_config_v2');
+            if (customConfigStr) {
+                try { activeFirebaseConfig = JSON.parse(customConfigStr); } catch(e) {}
+            }
+            if (!activeFirebaseConfig && firebaseConfig && firebaseConfig.apiKey) {
+                activeFirebaseConfig = firebaseConfig;
+            }
+            if (!activeFirebaseConfig && typeof __firebase_config !== 'undefined') {
+                try {
+                    activeFirebaseConfig = JSON.parse(__firebase_config);
+                    usingInjectedEnvConfig = true;
+                } catch(e) {}
+            }
+            if (!activeFirebaseConfig) {
+                updateSyncBadge(false, "Local Network Sync Active");
+                return;
+            }
+
+            activeProjectId = activeFirebaseConfig.projectId || 'Firebase';
+
+            try {
+                if (firestoreUnsubscribe) {
+                    firestoreUnsubscribe();
+                    firestoreUnsubscribe = null;
+                }
+
+                let app;
+                if (getApps().length === 0) {
+                    app = initializeApp(activeFirebaseConfig);
                 } else {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (authErr) {
-                        updateSyncBadge(false, `Sync Error: ${authErr.code || 'Auth Failed'}`);
-                        return;
+                    const existingApp = getApp();
+                    if (
+                        existingApp.options.apiKey !== activeFirebaseConfig.apiKey ||
+                        existingApp.options.projectId !== activeFirebaseConfig.projectId
+                    ) {
+                        await deleteApp(existingApp);
+                        app = initializeApp(activeFirebaseConfig);
+                    } else {
+                        app = existingApp;
                     }
                 }
 
-                currentUser = auth.currentUser;
-                if (currentUser) setupRealtimeListener();
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                let authNotice = null;
+                try {
+                    if (usingInjectedEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    currentUser = auth.currentUser;
+                } catch (authErr) {
+                    console.warn("Firebase Auth notice:", authErr);
+                    currentUser = null;
+                    authNotice = authErr.code || authErr.message;
+                }
+
+                setupRealtimeListener(authNotice);
             } catch (err) {
                 updateSyncBadge(false, "Sync Error", err.code || err.message);
             }
         }
 
-        function setupRealtimeListener() {
-            if (!db || !currentUser) return;
+        function setupRealtimeListener(authNotice = null) {
+            if (!db) return;
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
             const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
 
-            onSnapshot(stateDocRef, (docSnap) => {
+            firestoreUnsubscribe = onSnapshot(stateDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.plans) state.plans = mergeMissingInitialPlans(data.plans).plans;
@@ -1813,7 +1879,10 @@ const firebaseConfig = {
                 }
                 updateSyncBadge(true, "Cloud Real-Time Sync Active");
             }, (error) => {
-                updateSyncBadge(false, `Sync Notice: ${error.code || 'Firestore'}`, error.code || error.message);
+                const detail = authNotice
+                    ? `${error.code || error.message} (Auth: ${authNotice})`
+                    : (error.code || error.message);
+                updateSyncBadge(false, `Sync Notice: ${error.code || 'Firestore'}`, detail);
             });
         }
 
@@ -1860,7 +1929,7 @@ const firebaseConfig = {
                 });
             }
 
-            if (db && currentUser) {
+            if (db) {
                 try {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'sml-dashboard';
                     const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboard_state', 'current');
@@ -1869,7 +1938,7 @@ const firebaseConfig = {
                         logs: state.logs,
                         deletedLogs: state.deletedLogs,
                         updatedAt: new Date().toISOString(),
-                        updatedBy: currentUser.uid
+                        updatedBy: currentUser ? currentUser.uid : 'client'
                     }, { merge: true });
                 } catch (e) {
                     console.error("Firestore write error:", e);
@@ -2581,15 +2650,32 @@ const firebaseConfig = {
                 showToast("Invalid Firebase config snippet!", "warning");
                 return;
             }
-            localStorage.setItem('sml_custom_firebase_config', JSON.stringify(parsedConfig));
+            localStorage.removeItem('sml_firebase_sync_disabled');
+            localStorage.setItem('sml_custom_firebase_config_v2', JSON.stringify(parsedConfig));
             showToast("Saved Firebase Configuration. Connecting...", "info");
             closeModal('syncSettingsModal');
             initFirebaseSync();
         }
 
+        function handleUseDefaultSyncConfig() {
+            localStorage.removeItem('sml_firebase_sync_disabled');
+            localStorage.removeItem('sml_custom_firebase_config_v2');
+            const cfgInput = document.getElementById('firebaseConfigInput');
+            if (cfgInput) cfgInput.value = `const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};`;
+            showToast(`Switched to built-in Firebase config (${firebaseConfig.projectId}). Connecting...`, "info");
+            closeModal('syncSettingsModal');
+            initFirebaseSync();
+        }
+
         function handleClearSyncConfig() {
-            localStorage.removeItem('sml_custom_firebase_config');
+            localStorage.removeItem('sml_custom_firebase_config_v2');
+            localStorage.setItem('sml_firebase_sync_disabled', 'true');
+            if (firestoreUnsubscribe) {
+                firestoreUnsubscribe();
+                firestoreUnsubscribe = null;
+            }
             db = null; auth = null; currentUser = null;
+            activeProjectId = firebaseConfig.projectId;
             updateSyncBadge(false, "Local Network Sync Active");
             showToast("Disconnected cloud database. Reverted to Local Network mode.", "info");
             closeModal('syncSettingsModal');
@@ -3980,6 +4066,17 @@ const firebaseConfig = {
                 if (id === 'collectingPointModal') { lockDateField('inEntryDate'); const el = document.getElementById('inEntryDate'); if (el) el.value = todayStr; }
                 else if (id === 'assemblyEndModal') { lockDateField('outEntryDate'); const el = document.getElementById('outEntryDate'); if (el) el.value = todayStr; }
                 else if (id === 'productionReceiptModal') { lockDateField('prEntryDate'); const el = document.getElementById('prEntryDate'); if (el) el.value = todayStr; }
+                else if (id === 'syncSettingsModal') {
+                    const cfgInput = document.getElementById('firebaseConfigInput');
+                    if (cfgInput && !cfgInput.value.trim()) {
+                        const activeCfgStr = localStorage.getItem('sml_custom_firebase_config_v2');
+                        let activeCfg = firebaseConfig;
+                        if (activeCfgStr) {
+                            try { activeCfg = JSON.parse(activeCfgStr); } catch(e) {}
+                        }
+                        cfgInput.value = `const firebaseConfig = ${JSON.stringify(activeCfg, null, 2)};`;
+                    }
+                }
             }
         }
 
@@ -4012,6 +4109,7 @@ const firebaseConfig = {
         window.handleRestoreJSONFile = handleRestoreJSONFile;
         window.handleResetDataWithPassword = handleResetDataWithPassword;
         window.handleSaveSyncConfig = handleSaveSyncConfig;
+        window.handleUseDefaultSyncConfig = handleUseDefaultSyncConfig;
         window.handleClearSyncConfig = handleClearSyncConfig;
         window.requestDateUnlock = requestDateUnlock;
         window.handleConfirmDateUnlock = handleConfirmDateUnlock;
